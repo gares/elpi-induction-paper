@@ -19,7 +19,8 @@ Implicit, Arguments, Set, Unset, Contextual, Strict, Prenex, Implicits,
 Inductive, CoInductive, Record, Structure, Canonical, Coercion,
 Theorem, Lemma, Corollary, Proposition, Fact, Remark, Example,
 Proof, Goal, Save, Qed, Defined, Hint, Resolve, Rewrite, View,
-Search, Show, Print, Printing, All, Graph, Projections, inside, outside},
+Search, Show, Print, Printing, All, Graph, Projections, inside, outside,
+},
 
 % Gallina
 morekeywords=[2]{forall, exists, exists2, fun, fix, cofix, struct,
@@ -27,7 +28,8 @@ morekeywords=[2]{forall, exists, exists2, fun, fix, cofix, struct,
       for, of, nosimpl},
 
 % Sorts
-morekeywords=[3]{Type, Prop},
+morekeywords=[3]{Type, Prop, U,
+},
 
 % Various tactics, some are std Coq subsumed by ssr, for the manual purpose
 morekeywords=[4]{
@@ -47,12 +49,14 @@ morekeywords=[5]{
 
 
 % Control
-morekeywords=[6]{do, last, first, try, idtac, repeat},
+morekeywords=[6]{do, last, first, try, idtac, repeat,
+
+},
 
 % Various symbols
 % For the ssr manual we turn off the prettyprint of formulas
 literate=	
-	{->}{{$\rightarrow\,$}}2		
+	{->}{{$\rightarrow\,\,$}}2		
 % 	{->}{{\tt ->}}3
 %	{<-}{{$\leftarrow\,$}}2	
 % 	{<-}{{\tt <-}}2			
@@ -67,7 +71,7 @@ literate=
 % 	{:nat}{{$~\in\mathbb{N}$}}3	
 %	{fforall\ }{{$\forall_f\,$}}1		
 	{forall\ }{{$\forall\,$}}1		
-	{fun\ }{{$\lambda\,$}}1		
+	{fun\ }{{$\lambda\,$}}1
 %	{exists\ }{{$\exists\,$}}1
 % 	{negb}{{$\neg$}}1
 % 	{spp}{{:*:\,}}1

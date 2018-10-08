@@ -1,3 +1,11 @@
+(*
+Goal True.
+Proof.
+idtac.
+idtac.
+Qed.
+*)
+
 From elpi Require Import derive.
 
 Elpi derive nat.
@@ -8,6 +16,18 @@ Notation is_list := list.param1.list.
 
 Inductive rtree A : Type :=
   Leaf (n : A) | Node (l : list (rtree A)).
+
+Definition xxx : forall A (HA : forall a b : A, { a = b } + { ~(a = b) }) (x y : rtree A),
+  { x = y } + { ~ (x = y) }.
+intros A HA.
+fix rec 1.
+repeat decide equality.
+Defined.
+
+Print xxx.
+
+
+
 
 Check rtree_ind.
 (* forall (A : Type) (P : rtree A -> Prop),
@@ -95,6 +115,13 @@ Check list.injection.cons1.
 Check list.injection.cons2.
 (* list.injection.cons2
      : forall A : Type, A -> list A -> list A -> list A *)
+Print list.injection.cons1.
+(* list.injection.cons1 = 
+fun (A : Type) (H : A) (_ i : list A) =>
+match i with
+| nil => H
+| (x :: _)%list => x
+end *)
 
 Check list.eq.bcongr.cons.
 (* 
@@ -112,3 +139,48 @@ Check rtree.eq.bcongr.Leaf.
        reflect (x = y) b ->
        reflect (Leaf A x = Leaf A y) b
 *)
+Print rtree.eq.
+(* rtree.eq = 
+fun (A : Type) (eqA : A -> A -> bool) =>
+fix f (x1 x2 : rtree A) {struct x1} : bool :=
+  match x1 with
+  | Leaf _ n =>
+      match x2 with
+      | Leaf _ n0 => eqA n n0
+      | Node _ _ => false
+      end
+  | Node _ l =>
+      match x2 with
+      | Leaf _ _ => false
+      | Node _ l0 => list.eq (rtree A) f l l0
+      end
+  end
+*)
+Check rtree.eq.axiom.Node.
+(*rtree.eq.axiom.Node
+     : forall (A : Type) (f : A -> A -> bool)
+         (x : list (rtree A)),
+       axiom (list (rtree A))
+         (list.eq (rtree A) (rtree.eq A f)) x ->
+       forall x0 : rtree A,
+       axiom_at (rtree A) (rtree.eq A f) (Node A x) x0*)
+Print axiom_at.
+Check rtree.param1.rtreeP.
+Print rtree.param1.rtree.
+
+Check nat.induction.principle.
+Print nat.induction.
+
+
+Print rtree.eq.correct.
+Check fun (a : Type) (fa : a -> a -> bool) =>
+rtree.induction.principle a (axiom a fa)
+  (axiom (rtree a) (rtree.eq a fa))
+  (fun (n : a) (Pn : axiom a fa n) =>
+   rtree.eq.axiom.Leaf a fa n Pn)
+  (fun (l : list (rtree a))
+     (Pl : is_list (rtree a)
+             (axiom (rtree a) (rtree.eq a fa)) l) =>
+   rtree.eq.axiom.Node a fa l
+     (list.eq.correct (rtree a) (rtree.eq a fa) l Pl)).
+Check list.eq.correct.
