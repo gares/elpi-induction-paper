@@ -25,7 +25,7 @@ Search, Show, Print, Printing, All, Graph, Projections, inside, outside,
 % Gallina
 morekeywords=[2]{forall, exists, exists2, fun, fix, cofix, struct,
       match, with, end, as, in, return, let, if, is, then, else,
-      for, of, nosimpl},
+      for, of, nosimpl, eq-db, map-db, :-},
 
 % Sorts
 morekeywords=[3]{Type, Prop, U,
@@ -40,7 +40,9 @@ morekeywords=[4]{
             replace, fold, unfold, change, cutrewrite, simpl,
          have, suff, wlog, suffices, without, loss, nat_norm,
             assert, cut, trivial, revert, bool_congr, nat_congr,
-	 symmetry, transitivity, auto, split, left, right, autorewrite},        
+	 symmetry, transitivity, auto, split, left, right, autorewrite,
+ app, lam, const, indt, c0
+},        
 
 % Terminators
 morekeywords=[5]{
@@ -95,7 +97,7 @@ literate=
 
 % Spaces are not displayed as a special character
 showstringspaces=false,
-
+alsoletter={-:},
 % String delimiters
 morestring=[b]",
 
@@ -146,7 +148,7 @@ keywordstyle=[5]{\ttfamily\color{red}},
 %keywordstyle=[6]{\ttfamily\color{dkpink}},
 
 % Style for strings
-stringstyle=\ttfamily,
+stringstyle=\ttfamily\color{dkviolet},
 
 % Style for comments
 %commentstyle=\rmfamily,

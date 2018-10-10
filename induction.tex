@@ -14,7 +14,8 @@
 %\renewcommand*{\ttdefault}{lmss}
 \def\lstlanguagefiles{defManSSR.tex,lstlang2.sty}
 \lstset{language=SSR, breaklines=false} %flexiblecolumns=false, 
-\lstset{moredelim=[is][\uwave]{|*}{*|}}
+\lstset{moredelim=[is][\uline]{|*}{*|}}
+\lstset{moredelim=[is][\uwave]{/+}{+/}}
 \lstset{moredelim=[is][\uline]{/*}{*/}}
 \lstset{moredelim=[is][\color{dkblue}]{|+}{+|}}
 
@@ -22,7 +23,9 @@
 \usepackage{menukeys}
 \newcommand{\derive}[1]{\keys{#1}}
 
- 
+\usepackage{draftwatermark}
+\SetWatermarkText{Draft}
+
 %\usepackage{minted}
 %\newminted{coq}{fontsize=\footnotesize,escapeinside=\#\#}
  
@@ -56,7 +59,7 @@
 
 \title{Deriving proved equality tests in Coq-elpi}
 %\titlenote{with title note}
-\subtitle{Coq induction principles done right}
+\subtitle{Stronger induction principles for containers in Coq}
 %\subtitlenote{with subtitle note}
 
 \author{Enrico Tassi}
@@ -72,11 +75,22 @@
 %% Note: \begin{abstract}...\end{abstract} environment must come
 %% before \maketitle command
 \begin{abstract}
-We describe a procedure to derive from inductive type declarations
-equality tests and their correctness proofs. Programs and
-proofs are derived compositionally, reusing code and proofs
-derived previously.  Finally we provide an implementation for
-the Coq proof assistant based on the Elpi extension language.
+We describe a procedure to derive equality tests and their correctness
+proofs from inductive type declarations.  Programs and proofs
+are derived compositionally, reusing code and proofs derived
+previously.  
+
+The key steps are two. First, we
+design stronger induction principles for data types defined
+using parametric containers. Second, we
+develop a technique to work around the modularity limitations
+imposed by the purely syntactic termination check Coq performs
+on recursive proofs. 
+The unary parametricity translation of inductive data types
+turns out to be the key to both steps.
+
+Last but nor least, we provide an implementation of the procedure
+for the Coq proof assistant based on the Elpi extension language.
 \end{abstract}
 
 
@@ -104,7 +118,8 @@ the Coq proof assistant based on the Elpi extension language.
 
 %% Keywords
 %% comma separated list
-\keywords{keyword1, keyword2, keyword3}  %% \keywords are mandatory in final camera-ready submission
+\keywords{Coq, Containers, Induction, Equality test, Parametricity
+translation}  %% \keywords are mandatory in final camera-ready submission
 
 
 %% \maketitle
@@ -133,20 +148,21 @@ principle when a datatype \emph{uses} a container.
 For example, let's take the data type rose tree, where \lstinline+U+
 stands for a universe (such as \lstinline+Prop+ or \lstinline+Type+):
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Inductive rtree A : U :=
 | Leaf (a : A)
 | Node (l : list (rtree A)).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
+\noindent
 Its associated induction principle is the following one:
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 Lemma |+rtree_ind+| : forall A (P : rtree A -> U),
     (forall a : A, P (Leaf A a)) ->
     (forall l : list (rtree A), P (Node A l)) ->
   forall r : rtree A, P r.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 Remark that the recursive step, line 3, lacks any induction hypotheses
 on (the elements of) \lstinline+l+ while one would expect
@@ -207,18 +223,18 @@ allowing proofs to be mostly opaque.
 
 More precisely the contributions of this paper are the following ones:
 \begin{itemize}
-\item A technique to confine the termination checking
-	issue by reifying the subterm relation checked by purely syntactic
-	means by Coq's type checker. We apply it to the proof of equality
+\item A technique to confine the termination checking issue out of the
+	main proofs. In this paper we apply it to the proof of equality
 	tests, but it is applicable to all proofs by structural
 	induction.
 
 \item A modular and structured process to derive instances of the
 	\lstinline+eqType+ structure and, en passant, stronger
-	induction principles. Indeed procedure generates
-	terms that can be (re)used separately.
+	induction principles for inductive types defined using
+	containers.
 
-\item An actual implementation based on the Elpi extension language.
+\item An actual implementation based on the Elpi extension language
+	for the Coq proof assistant.
 \end{itemize}
 
 \noindent
@@ -229,28 +245,29 @@ one obtains the following definition, where \lstinline+reflect P b+
 is a predicate stating the equivalence between a predicate
 \lstinline+P+ and a boolean test \lstinline+f+.
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Definition eq_axiom T f x :=
   forall y, reflect (x = y) (f x y).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
-Then by issuing the \lstinline+Elpi derive rtree+ command one gets
+Then by issuing the command \lstinline+Elpi derive rtree+ one gets
 the following terms automatically synthesized out of the type
 declaration for \lstinline+rtree+:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Definition |+rtree_eq+| :
   forall A, (A -> A -> bool) -> rtree A -> rtree A -> bool.
 
-Lemma |+rtree_eq_OK+| : forall A (fa : A -> A -> bool),
-    (forall a, eq_axiom A fa a) ->
-  forall r, eq_axiom (rtree A) (rtree_eq A fa) r.
-\end{lstlisting}
+Lemma |+rtree_eq_OK+| : forall A (A_eq : A -> A -> bool),
+    (forall a, eq_axiom A A_eq a) ->
+  forall r, eq_axiom (rtree A) (rtree_eq A A_eq) r.
+\end{lstlisting}\end{minipage}
 
 \noindent
-The former is a (transparent) equality test for \lstinline+rtree+
-while the latter is a (opaque) proof of its correctness.
+The former is a (transparent) equality test for \lstinline+rtree+.
+The latter is a (opaque) proof of correctness for \lstinline+rtree_eq+
+under the assumption that the equality test \lstinline+A_eq+ is correct.
 
 The paper introduces the problem in
 section~\ref{sec:problem} by describing the shape of an equality test
@@ -275,76 +292,91 @@ The language provides constructors for fix point and pattern matching
 that work on any inductive data the user can declare.
 
 For example to test two lists \lstinline+l1+ and \lstinline+l2+ for
-equality one first takes in input an equality test \lstinline+fa+
+equality one first takes in input an equality test \lstinline+A_eq+
 for the elements of type \lstinline+A+ and then performs the
 recursion:
-\begin{lstlisting}[numbers=left]
-Definition |+list_eq+| A (fa : A -> A -> bool) :=
+
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
+Definition |+list_eq+| A (A_eq : A -> A -> bool) :=
   fix rec (l1 l2 : list A) {struct l1} : bool :=
     match l1, l2 with
     | nil, nil => true
-    | x :: xs, y :: ys => fa x y && rec xs ys
+    | x :: xs, y :: ys => A_eq x y && rec xs ys
     | _, _ => false
     end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
-Lets new define the equality test for the \lstinline+rtree+ data type
-by reusing the test for lists:
+Coq accepts this definition because
+the recursive call is on \lstinline+xs+ that is a syntactically
+smaller, i.e. a sub term, of the input term \lstinline+l1+ (the
+argument labelled as decreasing by the \lstinline+{struct l1}+
+annotation).
 
-\begin{lstlisting}[numbers=left,firstnumber=8]
-Definition |+rtree_eq+| B (fb : B -> B -> bool) :=
+Lets new define the equality test for the \lstinline+rtree+ data type
+by reusing the equality test for lists:
+
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left,firstnumber=8]
+Definition |+rtree_eq+| B (B_eq : B -> B -> bool) :=
   fix rec (t1 t2 : rtree B) {struct t1} : bool :=
     match t1, t2 with
-    | Leaf x, Leaf y => fb x y
+    | Leaf x, Leaf y => B_eq x y
     | Node l1, Node l2 =>
         list_eq (rtree B) rec l1 l2
     | _, _ => false
     end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
-Note that \lstinline+list_eq+ is called passing as the \lstinline+fa+
+Note that \lstinline+list_eq+ is called passing as the \lstinline+A_eq+
 argument the fixpoint \lstinline+rec+ itself (line 13). In order to
 check that the latter definition is sound, Coq looks at the body of
-\lstinline+list_eq+ to see weather its parameter \lstinline+fa+ is
-applied to a term smaller than \lstinline+t1+ (the argument labelled
-as decreasing by the \lstinline+{struct t1}+ annotation). Since
+\lstinline+list_eq+ to see weather its parameter \lstinline+A_eq+ is
+applied to a term smaller than \lstinline+t1+. Since
 \lstinline+l1+ is a subterm of \lstinline+t1+ and that \lstinline+x+
 is a subterm of \lstinline+l1+, the recursive call (line 5) is legit.
 
 This is pretty reasonable for programs. We want both \lstinline+list_eq+
 and \lstinline+rtree_eq+ to compute, hence their body matters to us.
-The fact that checking the soundness of \lstinline+rtree_eq+ requires
+The fact that checking the termination of \lstinline+rtree_eq+ requires
 inspecting the body of \lstinline+list_eq+ is not very annoying this
 time.
 
 On the contrary proof terms are typically hidden to the type checker once
 they have been validated, for both performance and modularity reasons.
-In particular in order
-to make only the statement of theorems binding, while having
+The desire is to make only the statement of theorems binding, and keep
 the freedom to clean, refactor, simplify proofs without breaking
 the rest of the formal development. 
 
-Unfortunately the following attempt is unsuccessful if the body of
+For example, lets assume we proved that \lstinline+list_eq+ is
+correct.
+
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
+Lemma |+list_eq_OK+| : forall A (A_eq : A -> A -> bool),
+    (forall a, eq_axiom A A_eq a) ->
+  forall l, eq_axiom A (list_eq A A_eq) l.
+Proof. .. Qed.
+\end{lstlisting}\end{minipage}
+
+It seems desiable to use this lemma in order to prove the
+correctness of \lstinline+rtree_eq+, since it calls
+\lstinline+list_eq+.
+
+Unfortunately the following proof is rejected if the body of
 \lstinline+list_eq_OK+ is hidden to the type checker:
 
-\begin{lstlisting}[numbers=left]
-Lemma |+list_eq_OK+| : forall A (fa : A -> A -> bool),
-    (forall a, eq_axiom A fa a) ->
-  forall l, eq_axiom A (list_eq A fa) l.
-
-Lemma |+rtree_eq_OK+| B fb (Hfb : forall b, eq_axiom B fb b) :
-  forall t, eq_axiom (rtree B) (rtree_eq B fb) t
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left,firstnumber=5]
+Lemma |+rtree_eq_OK+| B B_eq (H_B_eq: forall b, eq_axiom B B_eq b) :
+  forall t, eq_axiom (rtree B) (rtree_eq B B_eq) t
 := 
   fix IH (t1 t2 : rtree B) {struct t1} :=
   match t1, t2 with
   | Node l1, Node l2 =>
-  ..list_eq_OK (rtree B) (tree_eq B fb) IH l1 l2..
-  | Leaf b1, Leaf b2 => ..Hfb b1 b2..
+    .. list_eq_OK (rtree B) (tree_eq B B_eq) IH l1 l2 ..
+  | Leaf b1, Leaf b2 => .. H_B_eq b1 b2 ..
   | .. => ..
   end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 We pass \lstinline+IH+, the induction hypothesis, as the
@@ -382,21 +414,21 @@ Given an inductive type \lstinline+T+ we systematically name \lstinline+is_T+
 an inductive predicate describing the type of the inhabitants of
 \lstinline+T+. This is the one for natural numbers:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Inductive is_nat : nat -> U :=
 | is_O : is_nat 0
 | is_S n (pn : is_nat n) : is_nat (S n).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 The one for a container such as \lstinline+list+ is more interesting:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Inductive is_list A (PA : A -> U) : list A -> U :=
 | is_nil : is_list A PA nil
 | is_cons a (pa : PA a) l (pl : is_list A PA l) :
     is_list A PA (a :: l).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Remark that all the elements of the list validate \lstinline+PA+.
@@ -405,12 +437,12 @@ When a type \lstinline+T+ is defined in terms of another other type
 \lstinline+C+, typically a container, the \lstinline+is_C+ predicate
 shows up inside \lstinline+is_T+. For example:
 
-\begin{lstlisting}[numbers=left]
-Inductive is_rtree A (PA: A -> U): rtree A -> U :=
-|is_Leaf a (pa: PA a) : is_rtree A PA (Leaf A n)
-|is_Node l (pl: is_list (rtree A) (is_rtree A PA) l):
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
+Inductive is_rtree A (PA : A -> U): rtree A -> U :=
+| is_Leaf a (pa : PA a) : is_rtree A PA (Leaf A n)
+| is_Node l (pl : is_list (rtree A) (is_rtree A PA) l) :
     is_rtree A PA (Node A l).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Note how line 3 expresses the fact that all elements in the list
@@ -430,16 +462,16 @@ What we look for now is a way to synthesize
 a reasoning principle for a term \lstinline+t+ when 
 \lstinline+(is_T t)+ holds.
 
-\subsection{Better induction principles} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Stronger induction principles for containers} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Let's have a look at the standard induction principles of lists.
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Lemma |+list_ind+| A (P : list A -> U) :
     P nil ->
     (forall a l, P l -> P (a :: l)) ->
   forall l : list A, P l.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 This reasoning principle is purely parametric on \lstinline+A+, no
@@ -450,12 +482,12 @@ What we want to obtain is a more powerful principle that let as choose
 some invariant for the subterms of type \lstinline+A+. The one we
 synthesise is the following one, where the differences are underlined.
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 Lemma |+list_induction+| A /*(PA: A -> U)*/ (P: list A -> U):
     P nil ->
     (forall a /*(pa : PA a)*/ l, P l -> P (a :: l)) ->
   forall l, /*is_list A PA l*/ -> P l.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Note the extra premise \lstinline+(is_list A PA l)+: The
@@ -475,12 +507,12 @@ For terms of other types we use their unary parametricity translation.
 
 Take for example the induction principle for \lstinline+rtree+.
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 Lemma |+rtree_induction+| A PA (P : rtree A -> U) :
     (forall a, PA a -> P (Leaf A a)) ->
     (forall l, is_list (rtree A) P l -> P (Node A l)) ->
   forall t, is_rtree A PA t -> P t.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Line 3 uses \lstinline+is_list+ to attach a property to \lstinline+l+,
@@ -490,80 +522,54 @@ exactly \lstinline+P+.
 Note that this induction principle give us access to \lstinline+P+, the
 property one is proving, on the subtrees contained in \lstinline+l+.
 
-\subsection{Synthesizing better induction principles} %%%%%%%%%%%%%%%%%
+\subsubsection{Synthesizing better induction principles} %%%%%%%%%%%%%%%%%
 
-It turns out that there is a systematic way to generate this better
-induction principle for a type \lstinline+T+:
-trimming the standard elimination principle
-for the unary parametricity translation \lstinline+is_T+.
+We postpone a detailed description of the synthesis to
+section~\ref{sec:induction}, here we just sketch how to
+build the type on the induction principle.
 
-We use the word trim to indicate the operation of turning a
-dependent elimination into a non-dependent one. The typing rule
-for dependent pattern matching lets one simultaneously replace
-both the eliminated term and the indexes of its type. The trimmed
-eliminator only replaces the indexes.
+It turns out that the types of the constructors of
+\lstinline+is_T+ give us a very good hint on the type
+of the induction principle.
 
-Lets take the non-trimmed eliminator for \lstinline+is_list+ and
-let's underline the parts that we want to remove.
+The type of the first premise, line 2 in the snippet above,
+is exactly the type of the \lstinline+is_Leaf+ constructor
+where \lstinline+(is_rtree A PA)+ is replaced by \lstinline+P+.
+The same hold for the premise at line 3, that corresponds to
+the type of \lstinline+is_Node+ provided the same replacement.
 
-\begin{lstlisting}[numbers=left]
-Lemma |+is_list_ind+| A PA (P: forall l, /*is_list A PA l*/ -> U) :
-    P nil /*(is_nil A PA)*/ ->
-    (forall a (pa: PA a) l /*(pl: is_list A PA l)*/, P l /*pl*/ ->
-        P (a :: l) /* (is_cons A PA a pa l pl)*/) ->
-  forall l (pl: is_list A PA l), P l /*pl*/.
-\end{lstlisting}
-
-\noindent
-First \lstinline+P+ only talks about the index \lstinline+l+ (a list).
-Then, intuitively, redundant assumptions on variables are removed:
-we have both \lstinline+P+ and \lstinline+is_list A PA+ holding on
-\lstinline+l+ at line 3.
-
-If we do the same operation on \lstinline+is_tree+ we get the
-elimination principle we need:
-
-\begin{lstlisting}
-Lemma |+is_rtree_ind+| A PA (P: forall t,/*is_rtree A PA t*/-> U):
-  (forall a (Pa: PA a), P (Leaf A n) /*(is_Leaf A PA n Pa)*/) ->
-  (forall l, (Pl: is_list (rtree A) (is_rtree A PA) l),
-    P (Node A l) /*(is_Node A PA l Pl)*/) ->
- forall t (pt: is_rtree A PA t), P t /*pt*/.
-\end{lstlisting}
-
-\noindent
-We now have a reasoning principle on \lstinline+rtree+ that is likely
-to be powerful enough to prove \lstinline+rtree_eq+ correct.
-
-Unexpectedly these better induction principles also suggest a ways
-to confine the terms the termination checker of Coq has to inspect.
+Our intuition is that the inductive predicate \lstinline+is_T+
+provides the same information that typing provides. Induction
+principles give \lstinline+P+ on (smaller) terms of the same type,
+that would be terms for which \lstinline+is_T+ holds.
 
 \subsection{Isolating the syntactic termination check} %%%%%%%%%%%
-\label{section:idea:transparent}
+\label{sec:idea:transparent}
 
 As one expects, it is possible to prove that \lstinline+is_T+
 holds for terms of type \lstinline+T+.
 
-\begin{lstlisting}
-Definition |+nat_is_nat+| : forall n, is_nat n :=
+\begin{minipage}{\textwidth}\begin{lstlisting}
+Definition |+nat_is_nat+| : forall n : nat, is_nat n :=
   fix rec n : is_nat n :=
   match n as i return (is_nat i) with
   | 0 => is_O
   | S p => is_S p (rec p)
   end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
-For containers we can do so when the property on the
+For containers we can prove this class of theorems
+when the property on the
 parameter is true on the entire type.
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Definition |+list_is_list+| : forall A (PA : A -> U),
   (forall a, PA a) -> forall l, is_list A PA l.
 
 Definition |+rtree_is_rtree+| : forall A (PA : A -> U),
   (forall a, PA a) -> forall t, is_rtree A PA t.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 These facts are then to be used in order to satisfy the
@@ -572,7 +578,7 @@ proofs of equality tests in two steps.
 
 For example, for natural numbers
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 Lemma |+nat_eq_correct+| :
   forall n, is_nat n -> eq_axiom nat nat_eq n
 :=
@@ -580,7 +586,7 @@ Lemma |+nat_eq_correct+| :
 
 Lemma |+nat_eq_OK+| n : eq_axiom nat nat_eq n :=
   nat_eq_correct n (nat_is_nat n).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Where \lstinline+PO+ and \lstinline+PS+ (line 2) stand for
@@ -588,12 +594,13 @@ the two proof terms corresponding to the base case and the inductive
 step of the proof. We omit them because they play no role in the
 current discussion.
 
-For containers things go smoothly. For example the correctness proof
+For containers we can link the pieces in a similar way.
+For example the correctness proof
 for the equality test on the \lstinline+list A+ data type can be
 proved as follows, where again line 6 omits the steps for
 \lstinline+nil+ and \lstinline+cons+.
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 Lemma |+list_eq_correct+| A fa :
   forall l, is_list A (eq_axiom A  fa) l ->
     eq_axiom list A (list_eq A  fa)
@@ -606,16 +613,17 @@ Lemma |+list_eq_OK+| A fa (Pfa : forall a, eq_axiom A fa a) l :
   eq_axiom (list A) (list_eq A fa)
 :=
   list_eq_correct l (list_is_list (eq_axiom A fa) Pfa l).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
-What is more interesting is to look at the proof of the equality test
+What is more interesting is to look at the correctness 
+proof of the equality test
 for \lstinline+rtree+. Note how the induction hypothesis
 \lstinline+Pl+
 given by \lstinline+rtree_induction+ perfectly fits
 the premise of \lstinline+list_eq_correct+.
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 Lemma |+rtree_eq_correct+| A fa :
   forall t, is_tree A (eq_axiom A fa) t ->
     eq_axiom (rtree A) (rtree_eq A fa)
@@ -631,7 +639,7 @@ Lemma |+rtree_eq_OK+| A fa (Pfa : forall a, eq_axiom A fa a) t :
   eq_axiom (rtree A) (rtree_eq A fa)
 :=
   rtree_eq_correct t (tree_is_tree A (eq_axiom A fa) Pfa t).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 Type checking the terms above does not require any term to be
 transparent. Actually they are applicative terms, there is no
@@ -639,10 +647,10 @@ apparently recursive function involved.
 
 Still there is no magic, we just swept the problem under the rug.
 In order to type check the proof
-of \lstinline+tree_is_tree+ Coq needs the body
-of the proof of \lstinline+list_is_list+:
+of \lstinline+tree_is_tree+ Coq needs to look at the
+proof term of \lstinline+list_is_list+:
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 Definition |+rtree_is_rtree+| A PA (HPA : forall a, PA a) :=
   fix IH t {struct t} : is_rtree A PA t :=
   match t with
@@ -651,16 +659,17 @@ Definition |+rtree_is_rtree+| A PA (HPA : forall a, PA a) :=
       is_Node A PA l
         (list_is_list (rtree A) (is_rtree A) IH l)
   end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
+\noindent
 As we explained in section~\ref{sec:problem} Coq needs to know the
 body of  \lstinline+list_is_list+ in order to agree that the argument
 \lstinline+IH+ is only used on sub terms of \lstinline+t+.
 
-Even we can't make the problem disappear (without changing the way Coq
+Even if we can't make the problem disappear (without changing the way Coq
 checks termination), we claim we confined the termination checking issue
-to the world of reified type information. The transparent proofs of 
-\lstinline+is_T+ predicates are separate from the other, more
+to the world of reified type information. The transparent proofs of
+theorems such as \lstinline+T_is_T+ are separate from the other, more
 relevant, proofs that can hence remain opaque as desired.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -669,14 +678,16 @@ relevant, proofs that can hence remain opaque as desired.
 
 The structure of the derivation is depicted in the following diagram.
 Each box represents a component deriving a complete term.
-An arrows from component A to component B tells that the terms
-generated by B are used by the terms generated by A.
+An arrow from component A to component B tells that the terms
+generated by B are used by the terms generated by A. The interfaces
+between these components are indeed types: one can replace the work
+done by each component with a few hand written terms, if necessary.
 
 \includegraphics[width=0.45\textwidth]{derive.pdf}
 
 The \derive{eq} component is in charge on synthesizing the program
 performing the equality test. Recursion is performed on the first
-term; then two terms are inspected via pattern matching. If the
+term; then the two terms are inspected via pattern matching. If the
 constructors are different the output is false, otherwise the
 results of the recursive calls on the subterms are composed using
 boolean conjunction.
@@ -688,7 +699,7 @@ The property being proved by induction is expressed
 using \lstinline+eq_axiom+ that, as we will detail in
 section~\ref{sec:reflect} is equivalent to a double implication.
 The \derive{bcongr} component proves that the property is preserved
-by an equal context, that is when the two terms are built using the
+by equal contexts, that is when the two terms are built using the
 same constructor. When they are not the program must return false
 and the equality be false as well: this is shown by \derive{eqK},
 that performs the case split on the second term. The no confusion
@@ -698,7 +709,7 @@ are then used by \derive{injection} and \derive{discriminate} to
 prove that constructors are injective and different.
 As we sketched in the previous sections the unary parametricity
 translation plays a key role in expressing the induction
-principle. The inductive relation \lstinline+is_T+ for an inductive
+principle. The inductive predicate \lstinline+is_T+ for an inductive
 type \lstinline+T+ is generated by \derive{param1} while
 \derive{param1P} shows that terms of type \lstinline+T+ validate
 \lstinline+is_T+. \derive{map} shows that \lstinline+is_T+ is a
@@ -708,13 +719,12 @@ pieces together in the correctness proof.
 The \derive{eqOK} component hides the \lstinline+is_T+ relation
 from the theorems proved by \derive{eqcorrect} by using the lemmas
 proved by \derive{param1P}.
-\marginpar{rename eqOK in eqcorrect, eqcorrect in eqcorrect}
 
 \subsection{Equality test} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Synthesizing the equality test for a type \lstinline+T+ is the
-simplest step.  For each type parameter \lstinline+A+ an equality test
-\lstinline+eqA+ has to be taken in input.  Then the recursive function
+simplest step.  For each type parameter \lstinline+a+ an equality test
+\lstinline+a_eq+ has to be taken in input.  Then the recursive function
 takes in input two terms of type \lstinline+T+ and inspects both via
 pattern matching.  Outside the diagonal, where constructors are
 different, we return \lstinline+false+. On the diagonal we compose the
@@ -726,53 +736,82 @@ another type constructor we use the equality test for it.
 
 Lets take for example the equality test for rose trees:
 
-\begin{lstlisting}[numbers=left]
-Definition |+rtree_eq+| a (a_eq : a -> a -> bool) :=
-  fix rec (t1 t2 : rtree a) {struct t1} : bool :=
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
+Definition |+rtree_eq+| A (A_eq : A -> A -> bool) :=
+  fix rec (t1 t2 : rtree A) {struct t1} : bool :=
   match t1, t2 with
-  | Leaf a, Leaf b  => a_eq a b
-  | Node l, Node s => list_eq (rtree a) rec l s
+  | Leaf a, Leaf b  => A_eq a b
+  | Node l, Node s => list_eq (rtree A) rec l s
   | _, _ => false
   end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Line 5 calls \lstinline+list_eq+ since the type of \lstinline+l+ and
-\lstinline+s+ is \lstinline+list (rtree A)+ and it passes to it
+\lstinline+s+ is \lstinline+(list (rtree A))+ and it passes to it
 \lstinline+rec+ since the type parameter of \lstinline+list+ is
-\lstinline+rtree A+.
+\lstinline+(rtree A)+.
 
-Elpi is a logic programming language, hence programs are organized in
-clauses that can naturally express this line of reasoning. In
-particular we use an \lstinline+eq-db+ predicate that relates
-a type to its equality test. Here an excerpt.
+Elpi is a logic programming language: programs are organized in
+clauses that represent both a data base of known facts
+and a set of rules to derive new facts out of known ones.
+In this particular case we use the \lstinline+eq-db+ relation
+to link a type to its equality test. Here an excerpt of Elpi
+code.\footnote{We deliberately simplify the syntax of Elpi 
+since the omitted details are not relevant for this paper.
+For example \lstinline+list_eq+, being a definition,
+is actually written \lstinline+(const "Coq.Demo.list_eq")+; 
+\lstinline+list+, being an inductive type,
+is written \lstinline+(indt "Coq.Init.Datatypes.list")+;
+\lstinline+A+, being a bound variable, is represented by
+a unique nominal constant \lstinline+c0+.}
 
-\begin{lstlisting}[language=Prolog, numbers=left]
-eq-db a a_eq.
-eq-db (rtree a) aux.
-eq-db (list A) (list_eq A FA) :- eq-db A FA.
-\end{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
+eq-db "A" "A_eq".
+eq-db (app["rtree","A"]) "aux".
+eq-db (app["list", B]) (app["list_eq", B, B_eq]) :-
+  eq-db B B_eq.
+\end{lstlisting}\end{minipage}
 
 \noindent
-Note that lines 1 and 2 are present only during the derivation. Once it
-is complete they are both removed and the following one is permanently
-added to the data base.
+Elpi represent Coq terms in HOAS style,
+hence the application node \lstinline+app+ becomes apparent.
+Also, following the syntactic
+convention of Prolog, capital letters are variables.
+Note that \lstinline+"A"+ is a fixed Coq term,
+in this case the first argument of \lstinline+rtree_eq+, while
+\lstinline+B+ is an Elpi variable, that is a parameter
+of the clause.
 
-\begin{lstlisting}[language=Prolog]
-eq-db (rtree A) (tree_eq A FA) :- eq-db A FA.
-\end{lstlisting}
+The first two clauses are facts, respectively stating that
+\lstinline+A_eq+ is the equality test for type
+\lstinline+A+, and that \lstinline+aux+ is the one for
+\lstinline+(rtree A)+. 
+The third clause is an inference one and reads: the equality test
+for \lstinline+(list B)+ is \lstinline+(list_eq B B_eq)+ \emph{if}
+\lstinline+B_eq+ is the one for \lstinline+B+.
+
+Finally note that the first two clauses are present only during the
+derivation. Once it is complete they are both removed and the
+following one is permanently added to the data base.
+
+\begin{minipage}{\textwidth}\begin{lstlisting}[]
+eq-db (app["rtree", B]) (app["rtree_eq", B, B_eq]) :-
+  eq-db B_eq.
+\end{lstlisting}\end{minipage}
+
 
 % This derivation covers polynomial types and simple indexed data types
 % such as vectors. When indexes are present the fixpoint decorrelates
 % the index value of the two terms, e.g.:
 % 
-% \begin{lstlisting}
+% \begin{minipage}{\textwidth}\begin{lstlisting}
 % Definition vector_eq a i (v1 v2 : vector a i) :=
 %   fix rec i (v1 : vector a i) j (v2 : vector a j) :=
 %     .. nat_eq pi pj && rec pi xs pj ys ..
 %   in
 %     rec i v1 i v2
-% \end{lstlisting}
+% \end{lstlisting}\end{minipage}
 % 
 % \noindent
 % In this way \lstinline{rec} can be applied to sub vectors
@@ -788,12 +827,12 @@ following~\cite{keller:hal-00730913}. We already gave a few
 examples in section~\ref{sec:idea}, we repeat here just the
 one for rose trees:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Inductive is_rtree A (PA: A -> U): rtree A -> U :=
-|is_Leaf a (pa: PA a) : is_rtree A PA (Leaf A a)
-|is_Node l (pl: is_list (rtree A) (is_rtree A PA) l):
+| is_Leaf a (pa : PA a) : is_rtree A PA (Leaf A a)
+| is_Node l (pl : is_list (rtree A) (is_rtree A PA) l) :
     is_rtree A PA (Node A l).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 The \derive{pram1P} component synthesizes proofs that terms
@@ -801,10 +840,10 @@ of type \lstinline+T+ validate \lstinline+is_T+.
 In section~\ref{sec:idea:transparent} we explained why
 these proofs needs to be transparent.
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Definition |+rtree_is_rtree+| A (PA : A -> U) :
   (forall x, PA x) -> forall t, is_rtree A PA t.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 It is worth pointing out that the premise
@@ -823,100 +862,108 @@ The \derive{map} components implements a double service.
 
 For simple containers it synthesizes what one expects. For example:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Definition rtree_map A1 A2 :
   (A1 -> A2) -> rtree A1 -> rtree A2.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
-The derivation covers polynomial types and is not needed in order
-to derive equality tests nor their correctness proofs. Its extension
-to indexed relations is, on the contrary, needed.
+The derivation on containers with no indexes is not needed in order
+to synthesize equality tests nor their correctness proofs.
+On the contrary it becomes crucial when the container has indexes,
+e.g. when the container is a \lstinline+is_T+ inductive predicate.
 
 On indexed data types the derivation avoids to map the indexes and
-consequently type variable occurring in the types of the indexes.
-For example, mapping the \lstinline+is_list+ inductive relation gives:
-\marginpar{fails on rtree}
+consequently all type variables occurring in the types of the indexes.
+For example, mapping the \lstinline+is_list+ inductive predicate gives:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Lemma is_list_map : A PA PB,
   (forall a, PA a -> PB a) ->
     forall l, is_list A PA l -> is_list A PB l.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
-This property corresponds to the functoriality of the class of
-predicates \lstinline+is_T+ over the properties about the type
-parameters.  Later in section~\label{sec:derive:eqcorrect} we use this
-property to handle containers instantiated to base types, as in
-\lstinline+list nat+.
+This property corresponds to the functoriality of \lstinline+is_list+
+over the property about the type parameter. 
 
 Since Elpi is a logic programming language we can express
-these maps as clauses. Here an excerpt:
+these maps as clauses and use the data base later on in the
+\derive{induction} and \derive{eqcorrect} derivations.
+Here an excerpt:
 
-\begin{lstlisting}[language=Prolog, numbers=left]
-map-db (is_list A PA) (is_list A PB) R :-
-  R = (is_list_map A PA PB F), map-db PA PB F.
-\end{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}[]
+map-db (app["is_list", A, PA])
+        (app["is_list", A, PB]) R :-
+  R = (app["is_list_map", A, PA, PB, F]),
+  map-db PA PB F.
+\end{lstlisting}\end{minipage}
+
+\noindent
+Note that the terms are ``point free'', i.e.
+the first two arguments are terms of arity one, while
+the third term is of arity two. For example the identity
+map would be written as follows:
+
+\begin{minipage}{\textwidth}\begin{lstlisting}[]
+map-db PA PA (lam (fun a pa => pa)).
+\end{lstlisting}\end{minipage}
 
 
 
 \subsection{Induction} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\label{sec:induction}
 
 In order to derive the induction principle for type
 \lstinline+T+ we first derive its unary parametricity
-translation \lstinline+is_T+. The \lstinline+is_T+ inductive
-relation has one constructor \lstinline+is_K+ for each
+translation \lstinline+is_T+. 
+
+The \lstinline+is_T+ inductive
+predicate has one constructor \lstinline+is_K+ for each
 constructor \lstinline+K+ of the type \lstinline+T+.
 The type of \lstinline+is_K+ relates to the type of
 \lstinline+K+ in the following way. For each
 argument \lstinline+(a : A)+
 of \lstinline+K+, \lstinline+is_K+ takes two arguments:
 \lstinline+(a : A)+ and \lstinline+(pa : is_A a)+.
-Finally the type of \lstinline+is_K a pa .. z pz+ is
-\lstinline+is_T (K a .. z)+.
+Finally the type of \lstinline+is_K a1 pa1 .. an pan+ is
+\lstinline+is_T (K a1 .. an)+.
 
-In the following we write \lstinline+|*A*|+ to mean the n terms
-\lstinline+A1 .. An+.
-The induction principle can be synthesized as follows. 
-It first takes in input each parameter \lstinline+|*A*|+
-of \lstinline+is_T+, then a predicate \lstinline+(P : T |*A*| -> U)+. Then,
-for each constructor \lstinline+(is_K : S)+ it
-takes an assumption \lstinline+HK+ of type \lstinline+S[is_T |*A*| / P]+
-(\lstinline+S+ where \lstinline+is_T |*A*|+ is replaced by
-\lstinline+P+. Finally it takes in input
-\lstinline+(t : T |*A*|)+ and \lstinline+(x : is_T |*A*|)+.
-Recursion is performed on \lstinline+x+; each branch binds
-the arguments of constructor \lstinline+K+
-as \lstinline+|*(a : A) (pa : is_A a)*|+ and
-the body is \lstinline+HK |*a qa*|+ where \lstinline+qa+
-is obtained by \emph+mapping+ \lstinline+pa+ (as in
-\lstinline+map-db+).
+The induction principle can be synthesized as follows:
+\begin{enumerate}
+\item take in input each parameter
+  \lstinline+A1 PA1 .. An PAn+ of \lstinline+is_T+
+\item take in input a predicate \lstinline+(P : T A1 .. An -> U)+
+\item for each constructor \lstinline+(is_K : S)+ 
+  take an assumption \lstinline+HK+ of type
+  \lstinline+S[is_T A1 PA1 .. An PAn / P]+
+  (\lstinline+S+ where \lstinline+is_T |*A*|+ is replaced by
+  \lstinline+P+)
+\item take in input \lstinline+(t : T A1 .. An)+ and
+  \lstinline+(x : is_T A1 PA1 .. An PAn)+.
+\item recursion is performed on \lstinline+x+
+\item each branch binds the arguments of constructor \lstinline+is_K+
+  as \lstinline+(a1 : A1) (pa1 : is_A1 a1) .. (an : An) (pan : is_An an)+
+  and returns \lstinline+HK a1 qa1 .. an qan+ where
+  \lstinline+qai+ is obtained by \emph{mapping} the corresponding
+  \lstinline+pai+ (as in \lstinline+map-db+).
+\end{enumerate}
 
-Lets take for example the induction principle for rose trees.
+Lets take for example the induction principle for rose trees:
 
-\begin{lstlisting}
-Definition rtree_induction a pa p  
-    (HLeaf : forall y, pa y -> p (Leaf a y))
-    (HNode : forall l, is_list (rtree a) p l -> p (Node a l)) :
-  forall t, is_rtree a pa t -> p t
+\begin{minipage}{\textwidth}\begin{lstlisting}
+Definition rtree_induction A PA P  
+    (HLeaf : forall a, PA a -> P (Leaf A a))
+    (HNode : forall l, is_list (rtree A) P l -> P (Node A l)) :
+  forall t, is_rtree A PA t -> P t
 :=
-  fix ih (t : rtree a) (x : is_rtree a pa t) {struct x} : p t :=
+  fix IH (t : rtree A) (x : is_rtree A PA t) {struct x} : P t :=
   match x with
-  | is_Leaf y py => HLeaf y py
-  | is_Node l pl => (* pl : is_list (rtree a) (is_rtree a pa) l *)
+  | is_Leaf a pa => HLeaf a pa
+  | is_Node l pl => (* pl : is_list (rtree A) (is_rtree A PA) l *)
       HNode l
-        (is_list_map (rtree a) (is_rtree a pa) p ih l pl)
+        (is_list_map (rtree A) (is_rtree A PA) P IH l pl)
   end.
-\end{lstlisting}
-
-For convenience we recall the type of the constructor of
-\lstinline+is_rtree+:
-
-\begin{lstlisting}
-|+is_Leaf+| : forall y (py: pa y), is_rtree a pa (Leaf a y)
-|+is_Node+| : forall l (pl: is_list (rtree a) (is_rtree a pa) l),
-    is_rtree a pa (Node a l).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 Note how the type of \lstinline+HLeaf+ can be obtained fom the
 type of \lstinline+is_Leaf+ by replacing \lstinline+(is_rtree A PA)+
@@ -926,28 +973,43 @@ Finally lets see  how the second argument to \lstinline+HNode+ is
 synthesized.  We take advantage of the fact that Elpi is a logic
 programming language and we query the data base \lstinline+map-db+
 as follows. First we temporarily register 
-the fact that \lstinline+ih+ maps
-\lstinline+(is_rtree a pa)+ to \lstinline+p+ obtaining, among others,
+the fact that \lstinline+IH+ maps
+\lstinline+(is_rtree A PA)+ to \lstinline+P+ obtaining, among others,
 the following clauses.
 
-\begin{lstlisting}[language=Prolog]
-map-db (is_rtree a pa) p ih.
-map-db (is_list A PA) (is_list A PB) R :-
-  R = (is_list_map A PA PB F), map-db PA PB F.
-\end{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}[]
+map-db (app["is_rtree", "A", "PA"]) "P" "IH".
+map-db (app["is_list", A, PA])
+        (app["is_list", A, PB]) R :-
+  R = (app["is_list_map", A, PA, PB, F]),
+  map-db PA PB F.
+\end{lstlisting}\end{minipage}
 
 Then we query \lstinline+map-db+ as follows:
 
-\begin{lstlisting}[language=Prolog]
-map-db (is_list (rtree a) (is_rtree a pa)) (is_list (rtree a) p) Q
-\end{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}[]
+map-db (app["is_list", app["rtree","A"],
+           app["is_rtree","A","PA"]])
+        (app["is_list", app["rtree","A"],
+           "P"]) Q.
+\end{lstlisting}\end{minipage}
 
-The answer \lstinline+Q = (is_list_map (rtree a) (is_rtree a pa) p ih)+
-is exactly the term we need to pass to \lstinline+HNode+.
+\noindent
+The answer
+
+\begin{minipage}{\textwidth}\begin{lstlisting}[]
+Q = app["is_list_map", app["rtree","A"],
+         app["is_rtree","A","PA"], "P",
+         "IH"]
+\end{lstlisting}\end{minipage}
+
+\noindent
+is exactly the second term we need to pass to \lstinline+HNode+
+(once applied to \lstinline+l+ and \lstinline+Pl+).
 
 To sum up the unary parametricity translation give us the type
 of the induction principle, up to a trivial substitution.
-The functoriality property of the inductive relations obtained by
+The functoriality property of the inductive predicates obtained by
 parametricity gives us a way to prove the branches.
 
 \subsection{No confusion property} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -959,9 +1021,9 @@ constructors are injective and disjoint.
 Lets start by provide they are disjoint.
 The simples form of this property can be expressed on bool:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Lemma |+bool_discr+| : true = false -> forall T : U, T.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 This lemma is proved by hand once and forall. What the \derive{isK}
@@ -970,39 +1032,39 @@ to reduce a discrimination problem on type \lstinline+T+ to a
 discrimination problem on \lstinline+bool+. For the rose tree data
 type \derive{isK} generates the following consants:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Definition rtree_is_Node A (t : rtree A) : bool :=
   match t with Node _ => true | _ => false end.
 Definition rtree_is_Leaf A (t : rtree A) : bool :=
   match t with Node _ => false | _ => true end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 The \derive{discriminate} components uses one more trivial fact,
 \lstinline+eq_f+ in order to assemble these tests together
 with \lstinline+bool_discr+.
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Lemma |+eq_f+| T1 T2 (f : T1 -> T2) :
   forall a b, a = b -> f a = f b.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 From a term \lstinline+H+ of type 
 \lstinline+(Node l = Leaf a)+ the \derive{discriminate} procedure
 synthesizes a term of type \lstinline+(forall T : U, T)+ as follows:
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 bool_discr
   (eq_f (rtree A) (rtree A) (rtree_is_Node A) H)
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Note that the type of the term on line 2 is:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
   rtree_is_Node A (Node l) = rtree_is_Node A (Leaf a)
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 that is convertible to \lstinline+(true = false)+.
@@ -1011,7 +1073,7 @@ In order to prove the injectivity on constructors the \derive{projK}
 produce synthesizes a projector for each argument of each constructor.
 For example
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Definition list_get_cons1 A (d1 : A) (d2 : list A)
   (l : list A) : A
 :=
@@ -1027,7 +1089,7 @@ Definition list_get_cons2 A (d1 : A) (d2 : list A)
   | nil => d2
   | cons _ xs => xs
   end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Each projector takes in input default values for each and every
@@ -1036,19 +1098,19 @@ argument of the constructor. It is designed to be used by the
 \lstinline+H+ of type \lstinline+(cons x xs = cons y ys)+, in order
 to obtain a term of type \lstinline+(xs = ys)+ it generates:
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 eqf H (list_get_cons2 A x xs)
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 This term is easy to build given the type of \lstinline+H+ that
 contains the default values to be passed to the projector.
 Note that the type of the entire term is:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 list_get_cons2 A x xs (cons x xs) =
   list_get_cons2 A x xs (cons y ys)
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 that is convertible to the desired \lstinline+(xs = ys)+.
@@ -1060,11 +1122,11 @@ In the definition of \lstinline+eq_axiom+ we used the \lstinline+reflect+
 predicate. It is a form of if-and-only-if specialized to link a
 proposition and a boolean test. It is defined as follows:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Inductive reflect (P : U) : bool -> U :=
 | ReflectT (p : P) : reflect P true
 | ReflectF (np : P -> False) : reflect P false.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 To prove the correctness of equality tests the shape of
@@ -1076,7 +1138,7 @@ calls appropriate equality tests for the arguments and forgets about
 the constructor. The \derive{bcongr} component synthesizes lemmas
 helping this step. For example:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Lemma list_bcongr_cons A :
     forall (x y : A) b, reflect (x = y) b ->
     forall (xs ys : list A) c, reflect (xs = ys) c ->
@@ -1087,7 +1149,7 @@ Lemma rtree_bcongr_Leaf A (x y : A) b :
 
 Lemma rtree_bcongr_Node A (l1 l2 : list (rtree A)) b :
   reflect (l1 = l2) b -> reflect (Node A l1 = Node A l2) b
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Note that these lemmas are not related to the
@@ -1101,7 +1163,7 @@ The derivation goes as follows: if any of the premises about
 If all premises are \lstinline+ReflectT+ their argument,
 an equation, can be used to rewrite the conclusion.
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Lemma list_bcongr_cons A :
     forall (x y : A) b, reflect (x = y) b ->
     forall (xs ys : list A) c, reflect (xs = ys) c ->
@@ -1118,7 +1180,7 @@ Lemma list_bcongr_cons A :
          (x :: xs) (y :: ys) H))
   | _, ReflectF e => ..injection..
 end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 This is a sort of injection but specialized to Ks, to avoid n-ary
 injection.
@@ -1130,7 +1192,7 @@ This step corresponds to rec call + propagate return value.
 Now discrimination, the real switch, eg 2 different constructors.
 generate false in one case, call bcongr in the other.
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Lemma rtree_eq_axiom_Node A (f : A -> A -> bool) l1 :
     eq_axiom (list (rtree A)) (list_eq (rtree A) (rtree_eq A f)) l1 ->
   eq_axiom (rtree A) (rtree_eq A f) (Node A l1)
@@ -1147,7 +1209,7 @@ Lemma rtree_eq_axiom_Node A (f : A -> A -> bool) l1 :
       rtree_bcongr_Node A l1 l2
         (list_eq (rtree A) (rtree_eq A f) l1 l2) (h l2)
 end.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \subsection{Correctness} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \label{sec:derive:eqcorrect}
@@ -1161,7 +1223,7 @@ Lets recall the type of the correctness lemma for
 and then analyze the proof of
 \lstinline+rtree_eq_correct+:
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Lemma |+list_eq_correct+| A (fa : A -> A -> bool) l,
     is_list A (eq_axiom A fa) l ->
   eq_axiom (list A) (list_eq A fa) l.
@@ -1183,7 +1245,7 @@ Lemma |+rtree_eq_correct+| A (fa : A -> A -> bool) :=
                    (eq_axiom (rtree a) (rtree_eq a fa)) l) =>
              rtree_eq_axiom_Node A fa l
                (list_eq_correct (rtree a) (rtree_eq a fa) l Pl)).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 Logic programming provides again a natural way to guide the
 derivation. In particular we use the \lstinline+map-db+ predicate
@@ -1191,12 +1253,12 @@ to link the hypotheses provided by the induction principle,
 such as \lstinline+Pl+, to the premises of the branch lemmas
 produced by \derive{eqK}. 
 
-\begin{lstlisting}[language=Prolog]
+\begin{minipage}{\textwidth}\begin{lstlisting}[]
 map-db (is_list A PA)
        (eq_axiom (list A) (list_eq A F))
        (list_eq_correct A F) :- map-db PA (eq_axiom A F).
        FIXME
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 We extend the \lstinline+map-db+ predicate, instead of building
@@ -1204,7 +1266,7 @@ a new one just for correctness lemmas, because functoriality lemmas
 are sometimes needed. Take for example this simple data type
 of an histogram.
 
-\begin{lstlisting}[numbers=left]
+\begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 Inductive histogram := Columns (bars : list nat).
 
 Lemma histogram_induction (P : histogram -> Type) :
@@ -1226,7 +1288,7 @@ Lemma histogram_eq_correct
               l (is_list_map nat
                    is_nat (eq_axiom nat nat_eq)
                    nat_eq_correct l Pl))).
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 \noindent
 Note that Pl's type \lstinline+is_list nat is_nat+
@@ -1238,7 +1300,7 @@ but must undergo the \lstinline+is_list+ functor.
 
 The last derivation hides the \lstinline+is_T+ to the final user.
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 Lemma |+list_eq_correct+| A fa :
   forall l, is_list A (eq_axiom A  fa) l ->
     eq_axiom list A (list_eq A  fa) l.
@@ -1247,7 +1309,7 @@ Lemma |+list_eq_OK+| A f (Hf : forall a, eq_axiom A f a) :
   eq_axiom list A (list_eq A f)
 :=
   fun l => list_eq_correct A f (list_is_list A Hf) l.
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1305,14 +1367,15 @@ do not support indexes. A was to do that for indexes that admit a
 decidable equality is to wrap. For example \derive{projK} derives
 this
 
-\begin{lstlisting}
+\begin{minipage}{\textwidth}\begin{lstlisting}
 projcons3
      : forall (A : Type) (H : nat),
        A ->
        forall n : nat,
        Vector.t A n -> Vector.t A H -> {i1 : nat & Vector.t A i1}
-\end{lstlisting}
+\end{lstlisting}\end{minipage}
 
+\noindent
 For this you need an eqType, that is what we derive in this work,
 hence supporting more is future work. We did it by hand, 20 lines of
 boilerplate linking regular and wrapped vectors, and 20 lines proving
