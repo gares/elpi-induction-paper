@@ -27,8 +27,6 @@ Defined.
 Print xxx.
 
 
-
-
 Check rtree_ind.
 (* forall (A : Type) (P : rtree A -> Prop),
        (forall n : A, P (Leaf A n)) ->
@@ -168,9 +166,21 @@ Print axiom_at.
 Check rtree.param1.rtreeP.
 Print rtree.param1.rtree.
 
+Print nat.param1.natP.
+Print list.param1.listP.
+
+Print nat.eq.OK.
+About list.eq.correct.
+Print list.eq.correct.
+Check (fun A fa pfa t =>
+  rtree.eq.OK A fa t (rtree.param1.rtreeP A (axiom A fa) pfa t)).
+Print rtree.param1.rtreeP.
+
 Check nat.induction.principle.
 Print nat.induction.
 
+Check rtree.induction.principle.
+Check rtree.param1.rtree_ind.
 
 Print rtree.eq.correct.
 Check fun (a : Type) (fa : a -> a -> bool) =>
@@ -184,3 +194,12 @@ rtree.induction.principle a (axiom a fa)
    rtree.eq.axiom.Node a fa l
      (list.eq.correct (rtree a) (rtree.eq a fa) l Pl)).
 Check list.eq.correct.
+
+Open Scope list_scope.
+Print rtree.eq.axiom.Node.
+Elpi derive bool.
+Inductive histogram := Draw (color : bool) (n : list nat).
+Elpi derive histogram.
+Print histogram.eq.correct.
+Print histogram.induction.principle.
+
