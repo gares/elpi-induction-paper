@@ -23,7 +23,7 @@
 \usepackage{menukeys}
 \newcommand{\derive}[1]{\keys{#1}}
 
-%\usepackage{draftwatermark}
+\usepackage{draftwatermark}
 %\SetWatermarkText{Draft}
 
 %\usepackage{minted}
@@ -81,7 +81,7 @@ are derived compositionally, reusing code and proofs derived
 previously.  
 
 The key steps are two. First, we
-design stronger induction principles for data types defined
+design appropriate induction principles for data types defined
 using parametric containers. Second, we
 develop a technique to work around the modularity limitations
 imposed by the purely syntactic termination check Coq performs
@@ -89,7 +89,7 @@ on recursive proofs.
 The unary parametricity translation of inductive data types
 turns out to be the key to both steps.
 
-Last but nor least, we provide an implementation of the procedure
+Last but not least, we provide an implementation of the procedure
 	for the Coq proof assistant based on the Elpi~\cite{dunchev:hal-01176856} extension language.
 \end{abstract}
 
@@ -134,7 +134,7 @@ Modern typed programming languages come with the ability of generating
 boilerplate code automatically. Typically when a data type is declared
 a substantial amount of code is made available to the programmer at
 little cost, code such as an equality test, a printing function,
-generic visitors etc.  The \lstinline+derive+ directive of
+generic visitors etc.  For example the \lstinline+derive+ directive of
 Haskell or the
 \lstinline+ppx_deriving+ OCaml preprocessor
 provide these features for the respective programming language.
@@ -195,7 +195,7 @@ classes~\cite{Sozeau:2008:FTC:1459784.1459810} or
 canonical structures~\cite{10.1007/978-3-642-39634-2_5}
 are used to link the abstract library to the
 concrete instances the user is working on.
-For example first interface one
+For example the first interface one
 is required to implement in order to use the theorems in Mathematical
 Components library~\cite{mcb} on a type \lstinline+T+ is the \lstinline+eqType+
 one, that requires a correct equality test on \lstinline+T+.
@@ -226,8 +226,9 @@ theorems involved in the proof. This, in practice, forces all proofs to
 be transparent breaking modularity: a statement is no more a contract,
 changing its proof script may impact users.
 
-In this paper we describe a derivation procedure for the
-\lstinline+eqType+ interface where programs and proofs are both
+In this paper we describe a derivation procedure for equality tests
+and their correctness proofs
+where programs and proofs are both
 derived compositionally, reusing code and proofs derived previously.
 This procedure also confines the termination check issue,
 allowing proofs to be mostly opaque.
@@ -240,8 +241,8 @@ More precisely the contributions of this paper are the following ones:
 	that proceed by structural
 	induction.
 
-\item A modular and structured process to derive instances of the
-	\lstinline+eqType+ interface and, en passant, stronger
+\item A modular and structured process to derive proved equality tests
+		and, en passant, stronger
 	induction principles for inductive types defined using
 	containers.
 
@@ -250,7 +251,7 @@ More precisely the contributions of this paper are the following ones:
 \end{itemize}
 
 \noindent
-Straight to the point, by installing the \lstinline+coq-elpi-derive+
+Straight to the point, by installing the \lstinline+coq-elpi+
 package\footnote{See \url{https://github.com/LPCIC/coq-elpi} for the
 installation instructions} 
 one obtains the following definition, where \lstinline+(reflect P b)+
@@ -296,7 +297,7 @@ derivation.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{The problem: equality tests proofs meet syntactic termination checking} %%%%%
+\section{The problem: equality test proofs meet syntactic termination checking} %%%%%
 \label{sec:problem}
 
 Recursors, or induction principles, are not primitive notions in Coq.
@@ -325,7 +326,7 @@ smaller term, i.e. a subterm, of the input term \lstinline+l1+ (the
 argument labelled as decreasing by the \lstinline+{struct l1}+
 annotation).
 
-Lets now define the equality test for the \lstinline+rtree+ data type
+Let's now define the equality test for the \lstinline+rtree+ data type
 by reusing the equality test for lists:
 
 \begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left,firstnumber=8]
@@ -394,7 +395,8 @@ Lemma |+rtree_eq_OK+| B B_eq (HB: forall b, eq_axiom B B_eq b) :
 \noindent
 We pass \lstinline+IH+, the induction hypothesis, as the
 witness that \lstinline+(tree_eq B B_eq)+ is a correct equality test
-(the argument at line 10). Without knowing how this argument is used
+(the argument at line 11 preceding \lstinline+IH+). 
+Without knowing how this argument is used
 by \lstinline+list_eq_OK+, Coq rejects the term.
 
 The issue seems unfixable without changing Coq in order to use a more
@@ -405,7 +407,7 @@ consists in putting the transparent terms that the termination checker
 is going to inspect outside of the main proof bodies so that they can be 
 kept opaque.
 
-The intuition is to reify the property the termination checker wants
+The intuition is to ``reify'' the property the termination checker wants
 to enforce. It can be phrased as ``x is a subterm of t and has the same
 type''. More in general we model ``x is a subterm of t with property
 P``. Property ``P`` is going to be ``being of the same type`` 
@@ -448,7 +450,7 @@ When a type \lstinline+T+ is defined in terms of another other type
 shows up inside \lstinline+is_T+. For example:
 
 \begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
-Inductive is_rtree A (PA : A -> U): rtree A -> U :=
+Inductive is_rtree A (PA : A -> U) : rtree A -> U :=
 | is_Leaf a (pa : PA a) : is_rtree A PA (Leaf A n)
 | is_Node l (pl : is_list (rtree A) (is_rtree A PA) l) :
     is_rtree A PA (Node A l).
@@ -459,7 +461,7 @@ Note how line 3 expresses the fact that all elements in the list
 \lstinline+l+ validate \lstinline+(is_rtree A PA)+, i.e. they are
 rose trees.
 
-Our intuition is that these predicates ``reify'' the notion of being
+Our intuition is that these predicates reify the notion of being
 of a certain type, structurally. What we typically write \lstinline+(t : T)+
 can now be also phrased as \lstinline+(is_T t)+ as one would do in a
 framework other than type theory, such as a mono-sorted logic.
@@ -505,7 +507,7 @@ Note the extra premise \lstinline+(is_list A PA l)+: The
 implementation of this induction principle
 goes by recursion on the term of this type and finds
 as an argument of the \lstinline+is_cons+ constructor
-the proof evince \lstinline+(pa : PA a)+ it feeds to the second premise
+the proof evidence \lstinline+(pa : PA a)+ it feeds to the second premise
 (line 3). Intuitively all terms of type \lstinline+(list A)+
 validate the property \lstinline+P+, while all terms of type
 \lstinline+A+ validate the property \lstinline+PA+.
@@ -530,7 +532,7 @@ Line 3 uses \lstinline+is_list+ to attach a property to \lstinline+l+,
 and given that \lstinline+l+ has type \lstinline+(list (rtree A))+
 the property for the type parameter \lstinline+(rtree A)+ is
 exactly \lstinline+P+.
-Note that this induction principle give us access to \lstinline+P+, the
+Note that this induction principle gives us access to \lstinline+P+, the
 property one is proving, on the subtrees contained in \lstinline+l+.
 
 \subsubsection{Synthesizing stronger induction principles} %%%%%%%%%%%%%%%%%
@@ -623,8 +625,8 @@ current discussion.
 
 For containers we can link the pieces in a similar way.
 For example the correctness proof
-for the equality test on the \lstinline+list A+ data type can be
-proved as follows, where again line 7 omits the steps for
+for the equality test on the \lstinline+(list A)+ data type can be
+proved as follows, where again line 7 omits the proof steps for
 \lstinline+nil+ and \lstinline+cons+.
 
 \begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
@@ -663,7 +665,7 @@ Lemma |+rtree_eq_correct+| A A_eq :
 
 Lemma |+rtree_eq_OK+| A A_eq (HA : forall a, eq_axiom A A_eq a) t :
     eq_axiom (rtree A) (rtree_eq A A_eq) t :=
-  rtree_eq_correct t (tree_is_tree A (eq_axiom A A_eq) HA t).
+  rtree_eq_correct t (rtree_is_rtree A (eq_axiom A A_eq) HA t).
 \end{lstlisting}\end{minipage}
 
 Type checking the terms above does not require any term to be
@@ -672,7 +674,7 @@ apparently recursive function involved.
 
 Still there is no magic, we just swept the problem under the rug.
 In order to type check the proof
-of \lstinline+tree_is_tree+ Coq needs to look at the
+of \lstinline+rtree_is_rtree+ Coq needs to look at the
 proof term of \lstinline+list_is_list+:
 
 \begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
@@ -861,7 +863,7 @@ Line 5 calls \lstinline+list_eq+ since the type of \lstinline+l+ and
 \lstinline+rec+ since the type parameter of \lstinline+list+ is
 \lstinline+(rtree A)+.
 
-Here an excerpt of Elpi code used to synthesise the body of the
+Here is an excerpt of Elpi code used to synthesise the body of the
 branches:
 
 \begin{minipage}{\textwidth}\begin{lstlisting}
@@ -951,7 +953,7 @@ Definition |+rtree_is_rtree+| A (PA : A -> U) :
 
 \subsection{Functoriality} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-The \derive{map} components implements a double service.
+The \derive{map} component implements a double service.
 
 For simple containers it synthesizes what one expects. For example:
 
@@ -984,13 +986,13 @@ arity one, such as \lstinline+PA+, are mapped point wise.
 As we did for the \lstinline+eq-db+ data base of equality tests, we
 can store these maps as clauses and use the data base later on in the
 \derive{induction} and \derive{eqcorrect} derivations.
-Here an excerpt of Elpi code for this data base, that we call
+Here is an excerpt of Elpi code for this data base, that we call
 \lstinline+map-db+:
 
 \begin{minipage}{\textwidth}\begin{lstlisting}[]
 map-db (app["is_list", A, PA])
-        (app["is_list", A, PB]) R :-
-  R = (app["is_list_map", A, PA, PB, F]),
+        (app["is_list", A, PB])
+        (app["is_list_map", A, PA, PB, F]) :-
   map-db PA PB F.
 \end{lstlisting}\end{minipage}
 
@@ -1098,8 +1100,8 @@ the following clauses.
 \begin{minipage}{\textwidth}\begin{lstlisting}[]
 map-db (app["is_rtree", "A", "PA"]) "P" "IH".
 map-db (app["is_list", A, PA])
-        (app["is_list", A, PB]) R :-
-  R = (app["is_list_map", A, PA, PB, F]),
+        (app["is_list", A, PB])
+        (app["is_list_map", A, PA, PB, F]) :-
   map-db PA PB F.
 \end{lstlisting}\end{minipage}
 
@@ -1109,7 +1111,8 @@ Then we query \lstinline+map-db+ as follows:
 map-db (app["is_list", app["rtree","A"],
            app["is_rtree","A","PA"]])
         (app["is_list", app["rtree","A"],
-           "P"]) Q.
+           "P"])
+        Q.
 \end{lstlisting}\end{minipage}
 
 \noindent
@@ -1117,8 +1120,7 @@ The answer
 
 \begin{minipage}{\textwidth}\begin{lstlisting}[]
 Q = app["is_list_map", app["rtree","A"],
-         app["is_rtree","A","PA"], "P",
-         "IH"]
+         app["is_rtree","A","PA"], "P", "IH"]
 \end{lstlisting}\end{minipage}
 
 \noindent
@@ -1129,7 +1131,7 @@ It is worth pointing out that, for the term to be accepted
 by the termination checker the map over \lstinline+is_list+
 must be transparent.
 
-To sum up the unary parametricity translation give us the type
+To sum up the unary parametricity translation gives us the type
 of the induction principle, up to a trivial substitution.
 The functoriality property of the inductive predicates obtained by
 parametricity gives us a way to prove the branches.
@@ -1141,7 +1143,7 @@ one has to show the so called ``no confusion'' property, that is that
 constructors are injective and disjoint (see for
 example~\cite{10.1007/11617990_12}).
 
-Lets start by proving they are disjoint.
+Let's start by proving they are disjoint.
 The simplest form of this property can be expressed on bool:
 
 \begin{minipage}{\textwidth}\begin{lstlisting}
@@ -1149,17 +1151,17 @@ Lemma |+bool_discr+| : true = false -> forall T : U, T.
 \end{lstlisting}\end{minipage}
 
 \noindent
-This lemma is proved by hand once and forall. What the \derive{isK}
+This lemma is proved by hand once and for all. What the \derive{isK}
 component synthesizes is a per-constructor test to be used in order
 to reduce a discrimination problem on type \lstinline+T+ to a
 discrimination problem on \lstinline+bool+. For the rose tree data
-type \derive{isK} generates the following consants:
+type \derive{isK} generates the following constants:
 
 \begin{minipage}{\textwidth}\begin{lstlisting}
 Definition rtree_is_Node A (t : rtree A) : bool :=
   match t with Node _ => true | _ => false end.
 Definition rtree_is_Leaf A (t : rtree A) : bool :=
-  match t with Node _ => false | _ => true end.
+  match t with Leaf _ => true | _ => false end.
 \end{lstlisting}\end{minipage}
 
 \noindent
@@ -1215,7 +1217,7 @@ argument of the constructor. It is designed to be used by the
 to obtain a term of type \lstinline+(xs = ys)+ it generates:
 
 \begin{minipage}{\textwidth}\begin{lstlisting}
-eqf H (list_get_cons2 A x xs)
+eq_f H (list_get_cons2 A x xs)
 \end{lstlisting}\end{minipage}
 
 \noindent
@@ -1274,7 +1276,7 @@ with the \lstinline+reflect+ predicate, but not with the
 \lstinline+eq_axiom+ that we use every time we talk about equality tests.
 
 The derivation goes as follows: if any of the premises
-false, then the result is proved by
+is false, then the result is proved by
 \lstinline+ReflectF+ and the injectivity of constructors.
 If all premises are \lstinline+ReflectT+ their argument,
 an equation, can be used to rewrite the conclusion.
@@ -1364,9 +1366,9 @@ The \derive{eqcorrect} component combines the induction
 principle generated by \derive{induction} with the
 case split on the second term provided by \derive{eqK}.
 
-Lets recall the type of the correctness lemma for
+Let's recall the type of the correctness lemma for
 \lstinline+list_eq+, of the induction principle
-and then lets analyse the proof of
+and then let's analyse the proof of
 \lstinline+rtree_eq_correct+:
 
 \begin{minipage}{\textwidth}\begin{lstlisting}
@@ -1398,7 +1400,7 @@ eq_axiom (rtree A) (rtree_eq A fa)
 \end{lstlisting}\end{minipage}
 
 \noindent
-Each branch is the proved by the corresponding
+Each branch is then proved by the corresponding
 lemma generated by \derive{eqK} with only one caveat:
 one may need to adapt the induction hypothesis, 
 \lstinline+Pl+ here, in order to make it fix the premise
@@ -1431,10 +1433,10 @@ map-db (app["is_list", A,
 \end{lstlisting}\end{minipage}
 
 \noindent
-This clause simply given an operational reading to the type
+This clause simply gives an operational reading to the type
 of \lstinline+list_eq_correct+: the conclusion is true if the premise
 is. The only cleverness is to separate the premise in two parts,
-being a \lstinline+(list A) with property \lstinline+PA+ and have
+being a \lstinline+(list A)+ with property \lstinline+PA+ and have
 \lstinline+PA+ be a sufficient condition to prove that \lstinline+A_eq+
 is correct. In this way clauses compose better, e.g. the
 inference step peels off just one type constructor at a time.
@@ -1503,7 +1505,7 @@ Lemma |+list_eq_OK+| A A_eq (HA : forall a, eq_axiom A A_eq a) l :
 \end{lstlisting}\end{minipage}
 
 \noindent
-Both lemmas need to be available: the former is composes well
+Both lemmas need to be available: the former composes well
 and may be needed if one defines a type using rose trees as
 a container. The latter is what the user needs to work with
 rose trees.
@@ -1516,7 +1518,7 @@ fit for this application.
 
 On the average each components is about 200 lines of code.
 Simpler derivations like \derive{projK}, \derive{isK} or even
-\lstinline{param1P} are under 100 lines.
+\derive{param1P} are under 100 lines.
 
 Debugging this kind of code did not pose particular difficulties.
 The typical error results in the generated term being ill-typed.
@@ -1558,7 +1560,7 @@ without loosing information and that two such dependent pairs can be
 equated without major difficulties.
 
 Given that the output of each component in the derivation can
-be replace by user provided terms we tried to fill the gap by
+be replaced by user provided terms we tried to fill the gap by
 hand. It required around 20 lines of boilerplate to link the
 ``wrapped'' vectors to the regular ones and other 20 lines to
 perform what \derive{bcongr} and \derive{eqK} could, in principle, do.
@@ -1630,7 +1632,7 @@ Our approach is similar in a sense, since we work at the meta level on
 the syntax of types (and terms), but it is also very different since
 we pick a different programming language for meta programming.  In
 particular we choose a very high level one that makes our derivations
-very concise hides uninteresting details such as the
+very concise and hides uninteresting details such as the
 representation of bound variables.
 The derivation described in the paper is the result of many failed
 attempts and we believe that the high level nature of programming
@@ -1650,7 +1652,8 @@ for polynomial inductive data types.
 
 It seems reasonable to extend the current derivation code to cover
 inductive types with decidable indexes, as hinted in
-section~\ref{sec:oops}. For types not covered, it should be possible
+section~\ref{sec:oops}. For types not supported by the derivation
+it should be possible
 to improve the way user intervention is requested: right now errors
 are printed, but the exact type of the missing derivation
 has to be written down, and of course proved, by the user.
@@ -1666,15 +1669,18 @@ to be proved correct, but it features a better computational complexity.
 
 Finally, adding other derivations seems appealing. For example
 the interface next to \lstinline+eqType+ in the hierarchy used
-in Mathematical Component library is the one of countable types,
-requiring, roughly, an injective serialization function to
-another countable type.
+in the Mathematical Component library is the one of countable types,
+i.e. types in bijection with natural numbers. The interface
+requires, roughly, a serialization function to another countable
+type, a tedious task that could be made automatic.
 
 \begin{acks}
 We are grateful to Maxime Denes and Cyril Cohen for the many discussions
 shedding light on the subject. We thank Cyril Cohen for writing the code 
 of \derive{param2} (binary parametricity translation), out of which
-\derive{param1} was easily obtained.  Finally we are indebted
+\derive{param1} was easily obtained.  
+We also thank Damien Rouhling and Laurent Th\'ery for proofreading the paper.
+Finally we are indebted
 to Luc Chabassier for working on an early prototype of Elpi on
 the synthesis of equality tests: an experiment that convinced
 the author it was actually doable.
