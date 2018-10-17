@@ -223,8 +223,8 @@ is purely syntactic in Coq. Rephrased along the Curry-Howard
 isomorphism this means that in order to check that the induction
 hypothesis is applied to a smaller term, Coq may need to unfold all
 theorems involved in the proof. This, in practice, forces all proofs to
-be transparent breaking modularity: a statement is no more a contract,
-changing its proof script may impact users.
+be transparent and this, in turn, breaks modularity: a statement is no more a
+contract, changing its proof script may impact users.
 
 In this paper we describe a derivation procedure for equality tests
 and their correctness proofs
@@ -445,7 +445,7 @@ Inductive is_list A (PA : A -> U) : list A -> U :=
 \noindent
 Remark that all the elements of the list validate \lstinline+PA+.
 
-When a type \lstinline+T+ is defined in terms of another other type
+When a type \lstinline+T+ is defined in terms of another type
 \lstinline+C+, typically a container, the \lstinline+is_C+ predicate
 shows up inside \lstinline+is_T+. For example:
 
@@ -641,7 +641,7 @@ Lemma |+list_eq_correct+| A A_eq :
 Lemma |+list_eq_OK+| A A_eq (HA : forall a, eq_axiom A A_eq a) l :
     eq_axiom (list A) (list_eq A A_eq) l :=
   list_eq_correct A A_eq
-    l (list_is_list (eq_axiom A A_eq) HA l).
+    l (list_is_list A (eq_axiom A A_eq) HA l).
 \end{lstlisting}\end{minipage}
 
 \noindent
@@ -1508,9 +1508,9 @@ Lemma |+list_eq_OK+| A A_eq (HA : forall a, eq_axiom A A_eq a) l :
 
 \noindent
 Both lemmas need to be available: the former composes well
-and may be needed if one defines a type using rose trees as
-a container. The latter is what the user needs to work with
-rose trees.
+and is needed if one defines a type using lists as a container,
+such as rose trees.
+The latter is what the user needs in order to work with lists.
 
 \subsection{Assessment} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1681,7 +1681,8 @@ We are grateful to Maxime Denes and Cyril Cohen for the many discussions
 shedding light on the subject. We thank Cyril Cohen for writing the code 
 of \derive{param2} (binary parametricity translation), out of which
 \derive{param1} was easily obtained.  
-We also thank Damien Rouhling and Laurent Th\'ery for proofreading the paper.
+We also thank Damien Rouhling, Laurent Th\'ery and Laurence Rideau
+for proofreading the paper.
 Finally we are indebted
 to Luc Chabassier for working on an early prototype of Elpi on
 the synthesis of equality tests: an experiment that convinced
