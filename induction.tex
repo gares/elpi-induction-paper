@@ -23,7 +23,7 @@
 \usepackage{menukeys}
 \newcommand{\derive}[1]{\keys{#1}}
 
-\usepackage{draftwatermark}
+%\usepackage{draftwatermark}
 %\SetWatermarkText{Draft}
 
 %\usepackage{minted}
@@ -632,7 +632,7 @@ proved as follows, where again line 7 omits the proof steps for
 \begin{minipage}{\textwidth}\begin{lstlisting}[numbers=left]
 Lemma |+list_eq_correct+| A A_eq :
   forall l, is_list A (eq_axiom A  A_eq) l ->
-    eq_axiom list A (list_eq A  A_eq)
+    eq_axiom list A (list_eq A  A_eq) l
 :=
   list_induction A (eq_axiom A A_eq)
     (eq_axiom (list A) (list_eq A A_eq))
@@ -640,7 +640,8 @@ Lemma |+list_eq_correct+| A A_eq :
 
 Lemma |+list_eq_OK+| A A_eq (HA : forall a, eq_axiom A A_eq a) l :
     eq_axiom (list A) (list_eq A A_eq) l :=
-  list_eq_correct l (list_is_list (eq_axiom A A_eq) HA l).
+  list_eq_correct A A_eq
+    l (list_is_list (eq_axiom A A_eq) HA l).
 \end{lstlisting}\end{minipage}
 
 \noindent
@@ -665,7 +666,8 @@ Lemma |+rtree_eq_correct+| A A_eq :
 
 Lemma |+rtree_eq_OK+| A A_eq (HA : forall a, eq_axiom A A_eq a) t :
     eq_axiom (rtree A) (rtree_eq A A_eq) t :=
-  rtree_eq_correct t (rtree_is_rtree A (eq_axiom A A_eq) HA t).
+  rtree_eq_correct A A_eq
+    t (rtree_is_rtree A (eq_axiom A A_eq) HA t).
 \end{lstlisting}\end{minipage}
 
 Type checking the terms above does not require any term to be
