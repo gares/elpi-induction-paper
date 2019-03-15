@@ -4,6 +4,7 @@
 *.out
 *.log
 *.cut
+*.vtc
 
 *.swp
 *.un~
