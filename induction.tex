@@ -181,7 +181,7 @@ is purely syntactic in Coq: %Rephrased along the Curry-Howardvisomorphism
 in order to check that the induction
 hypothesis is applied to a smaller term, Coq may need to unfold all
 theorems involved in the proof. This forces proofs to
-be transparent that, in turn, breaks modularity: a statement is no more a
+be transparent that, in turn, breaks modularity: A statement is no more a
 contract, changing its proof script may impact users.
 
 In this paper we describe a derivation procedure for equality tests
@@ -254,8 +254,8 @@ derivation.
 Recursors, or induction principles, are not primitive notions in Coq.
 The language provides constructors for fix point and pattern matching
 that work on any inductive data the user can declare.
-For example to test two lists \lstinline+l1+ and \lstinline+l2+ for
-equality one first takes in input an equality test \lstinline+A_eq+
+For example in order to test two lists \lstinline+l1+ and \lstinline+l2+ for
+equality one typically takes in input an equality test \lstinline+A_eq+
 for the elements of type \lstinline+A+ and then performs the
 recursion:
 
@@ -1017,8 +1017,7 @@ one has to show the so called ``no confusion'' property, that is that
 constructors are injective and disjoint (see for
 example~\cite{10.1007/11617990_12}).
 
-Let's start by proving they are disjoint.
-The simplest form of this property can be expressed on bool:
+The simplest form of the property of being disjoint is expressed on \lstinline+bool+:
 
 \begin{lstlisting}
 Lemma |+bool_discr+| : true = false -> forall T : U, T.
@@ -1322,8 +1321,9 @@ Note that the type of \lstinline+Pl+ is
 \lstinline+(is_list nat is_nat)+ and that it
 needs to be adapted to match
 \lstinline+(is_list nat (eq_axiom nat nat_eq))+.
-The correctness lemma \lstinline+nat_eq_correct+ cannot be used directly
-but must undergo the \lstinline+is_list+ functor.
+The correctness lemma for \lstinline+nat_eq+, namely \lstinline+nat_eq_correct+ of type
+\lstinline+(forall n, is_nat n -> eq_axiom nat nat_eq n)+, cannot be used directly
+but must undergo the \lstinline+is_list_funct+ functor.
 
 \subsection{eqOK} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1335,8 +1335,8 @@ to the final user by combining the output of
 Lemma |+list_eq_correct+| A A_eq :
   forall l, is_list A (eq_axiom A A_eq) l -> eq_axiom (list A) (list_eq A A_eq) l.
 
-Lemma |+list_eq_OK+| A A_eq HA_eq l : eq_axiom (list A) (list_eq A A_eq) l :=
-  list_eq_correct A A_eq l (list_is_list A (eq_axiom A A_eq) HA_eq).
+Lemma |+list_eq_OK+| A A_eq A_eq_OK l : eq_axiom (list A) (list_eq A A_eq) l :=
+  list_eq_correct A A_eq l (list_is_list A (eq_axiom A A_eq) A_eq_OK).
 \end{lstlisting}
 
 \noindent
@@ -1408,13 +1408,28 @@ Isabelle~\cite{Nipkow:2002:IPA:1791547} all generate
 induction principles automatically, and some of them also the
 no confusion properties. 
 
-To our knowledge they do not generate sensible induction principles
-when containers are involved and do not generate proved equality tests
-out of the box.
+To our knowledge Isabelle is the only system that generates sensible induction
+principles and proved equality tests when containers are involved. As described
+in~\cite{10.1007/978-3-319-08970-6_7} the (co)datatype package is built on top
+of Bounded Natural Functors~\cite{Traytel:2012:FCD:2358958.2359545}, a
+notion that makes the construction of (co)datatypes in higher order logic
+compositional.  Our starting point is very different since Coq, and type theory
+in general, internalizes the definitional mechanism for (co)datatype. As
+a consequence a package like the one described in this paper cannot change
+it but only work around its eventual limitations.
+In particular the way Coq checks recursive functions for termination is
+a fixed, syntactic, non modular, criteria for which some alternatives
+have been studied (see for example
+\cite{DBLP:journals/lmcs/Abel08, DBLP:conf/lpar/BartheGP06})
+but never implemented.
+The non modular criteria applies to induction principles
+as well, since they are proved using recursion.
+It is a strength of the construction
+described in this paper to recover some modularity and hence be able to
+synthesize mechanically most of what~\cite{10.1007/978-3-319-08970-6_7} is
+able to synthesize. 
 
-
-
-Most of the systems cited above come with simple forms of Prolog-like
+Most Interactive Theorem Provers come with simple forms of Prolog-like
 automation, usually in the form of type classes. The user typically
 resorts to that in order to perform some of the inductive reasoning
 one needs in order to synthesize code in a type directed way.
@@ -1471,26 +1486,26 @@ language we chose played an important role in the exploratory phase.
 \section{Conclusion} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \label{sec:conclusion}
 
-We described a technique to define stronger induction principles
-for Coq data types built using containers. We use the unary
-parametricity translation in order to separate terms from types,
-express structural properties and finally confine the modularity
-problems stemming from the termination check implemented in Coq.
-Finally we provide a Coq package deriving correct equality tests
-for polynomial inductive data types.
+We described a technique to derive stronger induction principles for Coq data
+types built using containers. We use the unary parametricity translation of a
+data type in order to fuel its induction principle, to thread an invariant on
+the contained when used as a container and finally to confine the modularity
+problems stemming from the termination check implemented in Coq.  Finally we
+provide a Coq package deriving correct equality tests for polynomial inductive
+data types.
 
-It is work in progress to extend the derivation 
+It is work in progress to extend the derivation to 
 inductive types with decidable indexes. Preliminary work hints that
 indexes of base types such as \lstinline+nat+ pose no problem.
 On the contrary when indexes mention containers, that admit a decidable
 equality only if their contained does,
-complicates the \derive{param1P} component
-substantially. In particular some notions typical of Homotopy Type Theory
+the \derive{param1P} component gets 
+substantially more complex. In particular some notions of Homotopy Type Theory
 come in to play. For example the notion of being provable on the entire domain
 such as \lstinline+(forall a : A, P a) -> (forall t : T A, is_T A P t)+ seems
 to require to be strengthened using the notion of contractibility (that
-is, the property should hold and its proof be unique), otherwise the
-construction does not compose well.
+is, the property should hold and its proof be unique), in order for the
+construction to compose well.
 
 % For types not supported by the derivation
 % it should be possible
@@ -1507,7 +1522,7 @@ constructor. The resulting equality
 test surely requires some user intervention in order 
 to be proved correct, but it features a better computational complexity.
 
-Finally, adding other derivations seems appealing. For example
+Finally, adding other derivations to the package seems appealing. For example
 the interface next to \lstinline+eqType+ in the hierarchy used
 in the Mathematical Component library is the one of countable types,
 i.e. types in bijection with natural numbers. The interface
