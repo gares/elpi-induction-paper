@@ -18,7 +18,7 @@
 \lstset{moredelim=[is][\uwave]{/+}{+/}}
 \lstset{moredelim=[is][\uline]{/*}{*/}}
 \lstset{moredelim=[is][\color{dkblue}]{|+}{+|}}
-\lstset{backgroundcolor=\color[rgb]{0.95,0.95,0.96}}
+%\lstset{backgroundcolor=\color[rgb]{0.95,0.95,0.96}}
 
 % \usepackage{menukeys}
 % \usepackage[english]{babel}
@@ -154,7 +154,7 @@ canonical structures~\cite{10.1007/978-3-642-39634-2_5}
 are used to link the abstract library to the
 concrete instances the user is working on.
 For example the first interface one
-is required to implement in order to use the theorems in Mathematical
+is required to implement in order to use the theorems in the Mathematical
 Components library~\cite{mcb} on a type \lstinline+T+ is the \lstinline+eqType+
 one, requiring a correct equality test on \lstinline+T+.
 
@@ -182,7 +182,7 @@ in order to check that the induction
 hypothesis is applied to a smaller term, Coq may need to unfold all
 theorems involved in the proof. This forces proofs to
 be transparent that, in turn, breaks modularity: A statement is no more a
-contract, changing its proof script may impact users.
+contract, changing its proof may impact users.
 
 In this paper we describe a derivation procedure for equality tests
 and their correctness proofs
@@ -192,7 +192,8 @@ This procedure also confines the termination check issue,
 allowing proofs to be mostly opaque.
 More precisely the contributions of this paper are the following ones:
 \begin{itemize}
-\item A technique to confine the termination checking issue out of the
+\item A technique to confine the issue stemming from the purely syntactic
+	termination check implemented by Coq out of the
 	main proofs. In this paper we apply it to the correctness
 	proof of equality
 	tests, but the technique is applicable to all proofs 
@@ -227,8 +228,8 @@ Lemma |+rtree_eq_OK+| : forall A (A_eq : A -> A -> bool), (forall a, eq_axiom A 
 
 \noindent
 \lstinline+reflect+
-is a predicate stating the equivalence between a proposition (equality here)
-\lstinline+P+ and a boolean test \lstinline+b+;
+is a predicate stating the equivalence between a proposition \lstinline+x = y+
+and a boolean test \lstinline+(f x y)+;
 \lstinline+rtree_eq+ is a (transparent) equality test and
 \lstinline+rtree_eq_OK+ is its (opaque) correctness proof
 under the assumption that the equality test \lstinline+A_eq+ is correct.
@@ -347,7 +348,7 @@ know how
 
 The issue seems unfixable without changing Coq in order to use a more
 modular check for termination, for example based on sized
-types~\cite{sacchini:pastel-00622429}.
+types~\cite{DBLP:journals/lmcs/Abel08}.
 We propose a less ambitious but more practical approach here, that
 consists in putting the transparent terms that the termination checker
 is going to inspect outside of the main proof bodies so that they can be 
@@ -425,7 +426,7 @@ Lemma |+list_ind+| A (P : list A -> U) :
 
 \noindent
 This principle is parametric on \lstinline+A+:
-knowledge on any term of type \lstinline+A+ such as \lstinline+a+ is
+no knowledge on any term of type \lstinline+A+ such as \lstinline+a+ is
 ever available.
 We want to synthesize a more powerful principle that lets us choose
 an invariant for the subterms of type \lstinline+A+
@@ -521,7 +522,7 @@ Definition |+nat_is_nat+| : forall n : nat, is_nat n :=
 \end{lstlisting}
 
 \noindent
-For containers \lstinline+T A+ we can prove \lstinline+(is_T A PA)+
+For containers \lstinline+(T A)+ we can prove \lstinline+(is_T A PA)+
 when \lstinline+PA+ is trivial.
 
 \begin{lstlisting}
@@ -548,7 +549,7 @@ Lemma |+nat_eq_OK+| n : eq_axiom nat nat_eq n :=
 \end{lstlisting}
 
 \noindent
-where \lstinline+PO+ and \lstinline+PS+ (line 3) stand for
+where \lstinline+PO+ and \lstinline+PS+ (line 2) stand for
 the two proof terms corresponding to the base case and the inductive
 step of the proof. We omit them here for brevity.
 
@@ -567,7 +568,7 @@ Lemma |+list_eq_OK+| A A_eq (HA : forall a, eq_axiom A A_eq a) l :
 \end{lstlisting}
 
 \noindent
-It is interesting is to look at a data type that uses a container such as
+It is interesting to look at a data type that uses a container such as
 \lstinline+rtree+: the induction hypothesis
 \lstinline+Pl+
 given by \lstinline+rtree_induction+ perfectly fits
@@ -632,7 +633,7 @@ Higher Order Abstract Syntax) reusing the binders of the programming
 language to represent the ones of Coq.
 For example, the
 term \lstinline+(fun x => fact x)+ is represented as
-\lstinline+(lam (fun x, app["fact",x]))+. 
+\lstinline+(lam (llfun x, app["fact",x]))+. 
 We say that \lstinline+app+ and \lstinline+lam+ are object level term
 constructors standing for iterated (n-ary) application and unary lambda
 abstraction; \lstinline+"fact"+ is a constant and \lstinline+x+ is a
@@ -674,7 +675,7 @@ that reads back in the Coq syntax as
 \lstinline+(list_eq nat nat_eq)+, the desired
 equality test for \lstinline+(list nat)+.
 
-It is worth recalling out that in $\lambda$Prolog the set of clauses
+It is worth pointing out that in $\lambda$Prolog the set of clauses
 is dynamic: a program is allowed to add clauses inside
 a specific scope (typically the one of a binder) and the runtime
 collects them when the scope ends. As we will see, this feature
@@ -897,7 +898,7 @@ the third term is of arity two. %For example
 The identity is written as follows:
 
 \begin{lstlisting}[]
-funct-db P P (lam (fun a, lam (fun p, p))).
+funct-db P P (lam (llfun a, lam (llfun p, p))).
 \end{lstlisting}
 
 \noindent
@@ -1079,8 +1080,8 @@ argument of the constructor. It is designed to be used by the
 it synthesizes:
 
 \begin{lstlisting}
-(eq_f H (get_cons1 A x xs)) : x = y
-(eq_f H (get_cons2 A x xs)) : xs = ys
+(eq_f (list A) A $~~~~~~$ (get_cons1 A x xs) (x :: xs) (y :: ys) H) : x = y
+(eq_f (list A) (list A) (get_cons2 A x xs) (x :: xs) (y :: ys) H) : xs = ys
 \end{lstlisting}
 
 \noindent
@@ -1093,7 +1094,7 @@ get_cons2 A x xs (cons x xs) = get_cons2 A x xs (cons y ys)
 \end{lstlisting}
 
 \noindent
-that is convertible to the desired one displayed above.
+that is convertible to the desired type displayed above.
 
 \subsection{Congruence} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \label{sec:reflect}
@@ -1114,7 +1115,7 @@ In our case the shape of
 an inductive type, i.e. constructors.
 When the same constructor occurs in both sides, as in
 \lstinline+(k x1 .. xn = k y1 .. y2)+, the equality test
-discards \lstinline+k+ and proceeds on \lstinline+xi = yi+.
+discards \lstinline+k+ and proceeds on each \lstinline+(xi = yi)+.
 The \derive{bcongr} component synthesizes lemmas
 helping to prove the correctness of this step. For example:
 
@@ -1135,7 +1136,8 @@ Lemma rtree_bcongr_Node A (l1 l2 : list (rtree A)) b :
 Note that these lemmas are not related to the
 equality test specific to the inductive type. Indeed they deal
 with the \lstinline+reflect+ predicate, but not with the
-\lstinline+eq_axiom+ that we use every time we talk about equality tests.
+\lstinline+eq_axiom+ predicate that we use every time we talk
+about equality tests.
 
 The derivation goes as follows: if any of the premises
 is false, then the result is proved by
@@ -1167,13 +1169,13 @@ while the proposition is \lstinline+(x :: xs = x :: xs)+ given that
 the two equations \lstinline+(x = y)+ and \lstinline+(xs = ys)+
 were eliminated as well.
 
-That the argument of \lstinline+e+ at line 9
+The argument of \lstinline+e+ at line 9
 is the term generated by the \derive{injection} component.
 The branch at line 11, covering the case where
 the heads are equal but the tails different, is very close
 to lines 8 and 9 but for the fact that the projector for
 the second argument of \lstinline+cons+ is used, instead of the
-first one.
+projection for the first one.
 
 There are other ways one could have expressed these lemmas,
 for example by not mentioning the \lstinline+cons+
@@ -1412,15 +1414,15 @@ To our knowledge Isabelle is the only system that generates sensible induction
 principles and proved equality tests when containers are involved. As described
 in~\cite{10.1007/978-3-319-08970-6_7} the (co)datatype package is built on top
 of Bounded Natural Functors~\cite{Traytel:2012:FCD:2358958.2359545}, a
-notion that makes the construction of (co)datatypes in higher order logic
+notion that makes the construction of (co)datatypes in Higher Order Logic
 compositional.  Our starting point is very different since Coq, and type theory
-in general, internalizes the definitional mechanism for (co)datatype. As
+in general, internalizes the definitional mechanism for (co)datatypes. As
 a consequence a package like the one described in this paper cannot change
 it but only work around its eventual limitations.
 In particular the way Coq checks recursive functions for termination is
 a fixed, syntactic, non modular, criteria for which some alternatives
 have been studied (see for example
-\cite{DBLP:journals/lmcs/Abel08, DBLP:conf/lpar/BartheGP06})
+\cite{DBLP:conf/lpar/BartheGP06, sacchini:pastel-00622429})
 but never implemented.
 The non modular criteria applies to induction principles
 as well, since they are proved using recursion.
