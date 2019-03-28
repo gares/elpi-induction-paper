@@ -18,7 +18,7 @@
 \lstset{moredelim=[is][\uwave]{/+}{+/}}
 \lstset{moredelim=[is][\uline]{/*}{*/}}
 \lstset{moredelim=[is][\color{dkblue}]{|+}{+|}}
-%\lstset{backgroundcolor=\color[rgb]{0.95,0.95,0.96}}
+\lstset{backgroundcolor=\color[rgb]{0.90,0.90,0.90}}
 
 % \usepackage{menukeys}
 % \usepackage[english]{babel}
@@ -70,7 +70,7 @@ translation}  %% \keywords are mandatory in final camera-ready submission
 
 \begin{abstract}
 We describe a procedure to derive equality tests and their correctness
-proofs from inductive type declarations.  Programs and proofs
+proofs from inductive type declarations in Coq.  Programs and proofs
 are derived compositionally, reusing code and proofs derived
 previously.  
 
@@ -148,9 +148,9 @@ This situation is very unfortunate because the need for the automatic
 generation of boilerplate code such as equality tests
 is higher than ever in the Coq ecosystem.
 All modern formal libraries structure their contents in a
-hierarchy of interfaces and some machinery such as type
-classes~\cite{Sozeau:2008:FTC:1459784.1459810} or
-canonical structures~\cite{10.1007/978-3-642-39634-2_5}
+hierarchy of interfaces and some machinery such as Type
+Classes~\cite{Sozeau:2008:FTC:1459784.1459810} or
+Canonical Structures~\cite{10.1007/978-3-642-39634-2_5}
 are used to link the abstract library to the
 concrete instances the user is working on.
 For example the first interface one
@@ -228,8 +228,9 @@ Lemma |+rtree_eq_OK+| : forall A (A_eq : A -> A -> bool), (forall a, eq_axiom A 
 
 \noindent
 \lstinline+reflect+
-is a predicate stating the equivalence between a proposition \lstinline+x = y+
-and a boolean test \lstinline+(f x y)+;
+is a predicate stating the equivalence between the
+proposition \lstinline+(x = y)+
+and the boolean test \lstinline+(f x y)+;
 \lstinline+rtree_eq+ is a (transparent) equality test and
 \lstinline+rtree_eq_OK+ is its (opaque) correctness proof
 under the assumption that the equality test \lstinline+A_eq+ is correct.
@@ -241,7 +242,7 @@ that stems for the termination checker of Coq. It then
 presents the main idea behind the
 modular derivation procedure in section~\ref{sec:idea}.
 Section~\ref{sec:elpilang} briefly introduces the Elpi extension language
-and section~\ref{sec:code} describes all the bricks composing the
+and section~\ref{sec:code} describes the full 
 derivation.
 % In this paper we systematically omit the
 % \lstinline+Definition+ and \lstinline+Lemma+ keywords: terms are given
@@ -363,7 +364,7 @@ P''.
 \section{The idea: put unary parametricity translation to good use}
 \label{sec:idea}
 
-Given an inductive type \lstinline+T+ we systematically name \lstinline+is_T+
+Given an inductive type \lstinline+T+ we name \lstinline+is_T+
 an inductive predicate describing the type of the inhabitants of
 \lstinline+T+. This is the one for natural numbers:
 
@@ -607,11 +608,11 @@ Definition |+rtree_is_rtree+| A PA (HPA : forall a, PA a) :=
 \end{lstlisting}
 
 \noindent
-As we explained in section~\ref{sec:problem} Coq needs to know the
-body of  \lstinline+list_is_list+ in order to agree that the argument
-\lstinline+IH+ is only used on subterms of \lstinline+t+.
+As we explained in section~\ref{sec:problem} Coq would reject this term
+if the
+body of  \lstinline+list_is_list+ was opaque.
 
-Even if we can't make the problem disappear (without changing the way Coq
+Even if we cannot make the problem disappear (without changing the way Coq
 checks termination), we claim we confined the termination checking issue
 to the world of reified type information. The transparent proofs of
 theorems such as \lstinline+T_is_T+ are separate from the other, more
@@ -637,7 +638,7 @@ term \lstinline+(fun x => fact x)+ is represented as
 We say that \lstinline+app+ and \lstinline+lam+ are object level term
 constructors standing for iterated (n-ary) application and unary lambda
 abstraction; \lstinline+"fact"+ is a constant and \lstinline+x+ is a
-variable bound by \lstinline+fun x,+ that is the binder
+variable bound by \lstinline+llfun x,+ that is the binder
 of the programming language.  \footnote{Here we simplify
 a little the embedding and use strings to represent named terms,
 omitting their nodes:
@@ -742,7 +743,7 @@ from the theorems proved by \derive{eqcorrect} by using the lemmas
 \subsection{Equality test} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Synthesizing the equality test for a type \lstinline+T+ proceeds as follows.
-First it takes in input each type parameter \lstinline+A+ together with
+First the test takes in input each type parameter \lstinline+A+ together with
 an equality test \lstinline+A_eq+.  Then the recursive function
 takes in input two terms of type \lstinline+T+ and inspects both via
 pattern matching.  Outside the diagonal, where constructors are
@@ -753,7 +754,7 @@ is \lstinline+T+ then it is a recursive call; if it is a type
 parameter \lstinline+A+ then we use \lstinline+A_eq+; if it is
 another type it uses the corresponding equality test.
 
-Lets take for example the equality test for rose trees:
+Let us take for example the equality test for rose trees:
 
 \begin{lstlisting}[numbers=left]
 Definition |+rtree_eq+| A (A_eq : A -> A -> bool) :=
@@ -770,7 +771,7 @@ Line 5 calls \lstinline+list_eq+ since the type of \lstinline+l+ and
 \lstinline+s+ is \lstinline+(list (rtree A))+ and it passes to it
 \lstinline+rec+ since the type parameter of \lstinline+list+ is
 \lstinline+(rtree A)+.
-
+\newpage
 Here is an excerpt of Elpi code used to synthesize the body of the
 branches:
 
@@ -942,7 +943,7 @@ The induction principle is synthesized by following these steps:
 		\lstinline+(forall a1 pa1 .. am pam,+
 		\lstinline+P (K a1 .. am))+.
 \item take in input \lstinline+(t : T A1 .. An)+.
-\item take in input \lstinline+(x : is_T A1 PA1 .. An PAn)+.
+\item take in input \lstinline+(x : is_T A1 PA1 .. An PAn t)+.
 \item perform recursion on \lstinline+x+ and a case split. Then
 	in each branch
 \begin{enumerate}
@@ -975,7 +976,7 @@ Note how, intuitively, the type of \lstinline+HLeaf+ can be obtained fom the
 type of \lstinline+is_Leaf+ by replacing \lstinline+(is_rtree A PA)+
 with \lstinline+P+.
 
-Finally lets see  how the second argument to \lstinline+HNode+ is
+Finally let us see  how the second argument to \lstinline+HNode+ is
 synthesized.  We take advantage of the fact that Elpi is a logic
 programming language and we query the data base \lstinline+funct-db+
 as follows. First we temporarily register 
@@ -1057,7 +1058,8 @@ synthesizes:
 \noindent
 Note that the type of the term \lstinline+(eq_f .. H)+ is
 \lstinline+(is_Node A (Node l) = is_Node A (Leaf a))+
-that is convertible to \lstinline+(true = false)+.
+that is convertible to \lstinline+(true = false)+, the premise of
+\lstinline+bool_discr+.
 \\
 
 In order to prove the injectivity of constructors the \derive{projK}
@@ -1094,12 +1096,12 @@ get_cons2 A x xs (cons x xs) = get_cons2 A x xs (cons y ys)
 \end{lstlisting}
 
 \noindent
-that is convertible to the desired type displayed above.
+that is convertible to the desired type \lstinline+(xs = ys)+.
 
 \subsection{Congruence} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \label{sec:reflect}
 
-In the definition of \lstinline+eq_axiom+ we used the \lstinline+reflect+
+In the definition of \lstinline+eq_axiom+ we use the \lstinline+reflect+
 predicate~\cite{mcb}. It is a sort of if-and-only-if specialized to link a
 proposition and a boolean test. It is defined as follows:
 
@@ -1163,7 +1165,7 @@ end.
 \noindent
 The elimination of \lstinline+hb+ and \lstinline+hc+
 substitutes \lstinline+b+ and \lstinline+c+ 
-by either \lstinline+true+ or \lstinline+false+. The branch
+by either \lstinline+true+ or \lstinline+false+. In the branch
 at line 6 the boolean expression is hence \lstinline+(true && true)+
 while the proposition is \lstinline+(x :: xs = x :: xs)+ given that
 the two equations \lstinline+(x = y)+ and \lstinline+(xs = ys)+
@@ -1185,7 +1187,7 @@ Even if we find this presentation more appealing on paper, in practice
 we found no advantage and we hence opted for the current approach.
 
 \derive{bcongr} gives us lemmas to propagate
-equality and inequality only under the same constructor
+equality and inequality only under the same constructor.
 \derive{eqK} complements this work 
 by proving \lstinline+eq_axiom+ also when the constructors differ.
 
@@ -1359,7 +1361,7 @@ Simpler derivations like \derive{projK}, \derive{isK} or even
 Debugging this kind of code did not pose particular difficulties.
 The typical error results in the generated term being ill-typed.
 In that case the Coq type checker could be used to identify the
-culprit. Given how small the bricks are, it was simple to identify
+culprit. Given how small the derivations are, it was simple to identify
 the lines generating the offending subterm.
 
 The time required to design and develop the entire procedure amounts
@@ -1432,7 +1434,7 @@ synthesize mechanically most of what~\cite{10.1007/978-3-319-08970-6_7} is
 able to synthesize. 
 
 Most Interactive Theorem Provers come with simple forms of Prolog-like
-automation, usually in the form of type classes. The user typically
+automation, usually in the form of Type Classes. The user typically
 resorts to that in order to perform some of the inductive reasoning
 one needs in order to synthesize code in a type directed way.
 To our knowledge no ready-to-use package to synthesize equality tests
