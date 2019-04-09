@@ -120,7 +120,7 @@ Its associated induction principle is the following one:
 Lemma |+rtree_ind+| : forall A (P : rtree A -> U),
     (forall a : A, P (Leaf A a)) ->
     (forall l : list (rtree A), P (Node A l)) ->
-  forall r : rtree A, P r.
+  forall t : rtree A, P t.
 \end{lstlisting}
 
 Remark that the recursive step, line 3, lacks any induction hypotheses
@@ -318,7 +318,7 @@ proof that \lstinline+list_eq+ is correct.
 \begin{lstlisting}[numbers=left]
 Lemma |+list_eq_OK+| : forall A (A_eq : A -> A -> bool),
     (forall a, eq_axiom A A_eq a) ->
-  forall l, eq_axiom A (list_eq A A_eq) l.
+  forall l, eq_axiom (list A) (list_eq A A_eq) l.
 Proof. .. Qed. (* proof is opaque, hence hidden *)
 \end{lstlisting}
 
@@ -378,27 +378,27 @@ Inductive is_nat : nat -> U :=
 The one for a container such as \lstinline+list+ is more interesting:
 
 \begin{lstlisting}
-Inductive is_list A (PA : A -> U) : list A -> U :=
-| is_nil : is_list A PA nil
-| is_cons a (pa : PA a) l (pl : is_list A PA l) : is_list A PA (a :: l).
+Inductive is_list A (is_A : A -> U) : list A -> U :=
+| is_nil : is_list A is_A nil
+| is_cons a (pa : is_A a) l (pl : is_list A is_A l) : is_list A is_A (a :: l).
 \end{lstlisting}
 
 \noindent
-Remark that all the elements of the list validate \lstinline+PA+.
+Remark that all the elements of the list validate \lstinline+is_A+.
 
 When a type \lstinline+T+ is defined in terms of another type
 \lstinline+C+, typically a container, the \lstinline+is_C+ predicate
 shows up inside \lstinline+is_T+. For example:
 
 \begin{lstlisting}[numbers=left]
-Inductive is_rtree A (PA : A -> U) : rtree A -> U :=
-| is_Leaf a (pa : PA a) : is_rtree A PA (Leaf A n)
-| is_Node l (pl : is_list (rtree A) (is_rtree A PA) l) : is_rtree A PA (Node A l).
+Inductive is_rtree A (is_A : A -> U) : rtree A -> U :=
+| is_Leaf a (pa : is_A a) : is_rtree A is_A (Leaf A a)
+| is_Node l (pl : is_list (rtree A) (is_rtree A is_A) l) : is_rtree A is_A (Node A l).
 \end{lstlisting}
 
 \noindent
 Note how line 3 expresses the fact that all elements in the list
-\lstinline+l+ validate \lstinline+(is_rtree A PA)+.
+\lstinline+l+ validate \lstinline+(is_rtree A is_A)+.
 
 Our intuition is that these predicates reify the notion of being
 of a certain type, structurally. What we typically write \lstinline+(t : T)+
@@ -434,34 +434,34 @@ an invariant for the subterms of type \lstinline+A+
 (the differences are underlined):
 
 \begin{lstlisting}[numbers=left]
-Lemma |+list_induction+| A /*(PA: A -> U)*/ (P: list A -> U):
+Lemma |+list_induction+| A /*(is_A: A -> U)*/ (P: list A -> U):
     P nil ->
-    (forall a /*(pa : PA a)*/ l, P l -> P (a :: l)) ->
-  forall l, /*is_list A PA l*/ -> P l.
+    (forall a /*(pa : is_A a)*/ l, P l -> P (a :: l)) ->
+  forall l, /*is_list A is_A l*/ -> P l.
 \end{lstlisting}
 
 \noindent
-Note the extra premise \lstinline+(is_list A PA l)+: The
+Note the extra premise \lstinline+(is_list A is_A l)+: The
 implementation of this induction principle
 goes by recursion on the term of this type and finds
 as an argument of the \lstinline+is_cons+ constructor
-the proof evidence \lstinline+(pa : PA a)+ it feeds to the second premise
+the proof evidence \lstinline+(pa : is_A a)+ it feeds to the second premise
 (line 3). Intuitively all terms of type \lstinline+(list A)+
 validate the property \lstinline+P+, while all terms of type
-\lstinline+A+ validate the property \lstinline+PA+.
+\lstinline+A+ validate the property \lstinline+is_A+.
 
 More in general to each type we attach a property. For parameters we
-let the user choose (we take another parameter, \lstinline+PA+ here).
+let the user choose (we take another parameter, \lstinline+is_A+ here).
 For the type being analysed, \lstinline+list A+ here, we take the
 usual induction predicate \lstinline+P+.
 For terms of other types we use their unary parametricity translation.
 Take for example the induction principle for \lstinline+rtree+.
 
 \begin{lstlisting}[numbers=left]
-Lemma |+rtree_induction+| A PA (P : rtree A -> U) :
-    (forall a, PA a -> P (Leaf A a)) ->
+Lemma |+rtree_induction+| A is_A (P : rtree A -> U) :
+    (forall a, is_A a -> P (Leaf A a)) ->
     (forall l, is_list (rtree A) P l -> P (Node A l)) ->
-  forall t, is_rtree A PA t -> P t.
+  forall t, is_rtree A is_A t -> P t.
 \end{lstlisting}
 
 \noindent
@@ -484,18 +484,18 @@ of the induction principle.
 The type of the first premise
 
 \begin{lstlisting}
-    (forall a, PA a -> P (Leaf A a)) ->
+    (forall a, is_A a -> P (Leaf A a)) ->
 \end{lstlisting}
 
 \noindent
 is exactly the type of the \lstinline+is_Leaf+ constructor
 
 \begin{lstlisting}
-| is_Leaf a (pa : PA a) : is_rtree A PA (Leaf A n)
+| is_Leaf a (pa : is_A a) : is_rtree A is_A (Leaf A n)
 \end{lstlisting}
 
 \noindent
-where \lstinline+(is_rtree A PA)+ is replaced by \lstinline+P+.
+where \lstinline+(is_rtree A is_A)+ is replaced by \lstinline+P+.
 The same holds for the other premise: its type can be trivially
 obtained from the type of \lstinline+is_Node+.
 
@@ -523,13 +523,13 @@ Definition |+nat_is_nat+| : forall n : nat, is_nat n :=
 \end{lstlisting}
 
 \noindent
-For containers \lstinline+(T A)+ we can prove \lstinline+(is_T A PA)+
-when \lstinline+PA+ is trivial.
+For containers \lstinline+(T A)+ we can prove \lstinline+(is_T A is_A)+
+when \lstinline+is_A+ is trivial.
 
 \begin{lstlisting}
-Definition |+list_is_list+| : forall A (PA : A -> U), (forall a, PA a) -> forall l, is_list A PA l.
+Definition |+list_is_list+| : forall A (is_A : A -> U), (forall a, is_A a) -> forall l, is_list A is_A l.
 
-Definition |+rtree_is_rtree+| : forall A (PA : A -> U), (forall a, PA a) -> forall t, is_rtree A PA t.
+Definition |+rtree_is_rtree+| : forall A (is_A : A -> U), (forall a, is_A a) -> forall t, is_rtree A is_A t.
 \end{lstlisting}
 
 \noindent
@@ -599,11 +599,11 @@ of \lstinline+rtree_is_rtree+ Coq needs to look at the
 proof term of \lstinline+list_is_list+:
 
 \begin{lstlisting}[numbers=left]
-Definition |+rtree_is_rtree+| A PA (HPA : forall a, PA a) :=
-  fix IH t {struct t} : is_rtree A PA t :=
+Definition |+rtree_is_rtree+| A is_A (His_A : forall a, is_A a) :=
+  fix IH t {struct t} : is_rtree A is_A t :=
     match t with
-    | Leaf a => is_Leaf A PA a (HPA a)
-    | Node l => is_Node A PA l (list_is_list (rtree A) (is_rtree A) IH l)
+    | Leaf a => is_Leaf A is_A a (His_A a)
+    | Node l => is_Node A is_A l (list_is_list (rtree A) (is_rtree A) IH l)
     end.
 \end{lstlisting}
 
@@ -826,9 +826,9 @@ following~\cite{keller:hal-00730913}. We already gave many
 examples in section~\ref{sec:idea}.
 % 
 % \begin{lstlisting}
-% Inductive is_rtree A (PA: A -> U): rtree A -> U :=
-% | is_Leaf a (pa : PA a) : is_rtree A PA (Leaf A a)
-% | is_Node l (pl : is_list (rtree A) (is_rtree A PA) l) : is_rtree A PA (Node A l).
+% Inductive is_rtree A (is_A: A -> U): rtree A -> U :=
+% | is_Leaf a (pa : is_A a) : is_rtree A is_A (Leaf A a)
+% | is_Node l (pl : is_list (rtree A) (is_rtree A is_A) l) : is_rtree A is_A (Node A l).
 % \end{lstlisting}
 % 
 % \noindent
@@ -842,13 +842,13 @@ For example:
 % these proofs needs to be transparent.
 
 \begin{lstlisting}
-Definition |+rtree_is_rtree+| A (PA : A -> U) : (forall x, PA x) -> forall t, is_rtree A PA t.
+Definition |+rtree_is_rtree+| A (is_A : A -> U) : (forall x, is_A x) -> forall t, is_rtree A is_A t.
 \end{lstlisting}
 
 % \noindent
 % It is worth pointing out that the premise
-% \lstinline+(forall x, PA x)+ can be proved not only for
-% trivial \lstinline+PA+. In particular, during induction
+% \lstinline+(forall x, is_A x)+ can be proved not only for
+% trivial \lstinline+is_A+. In particular, during induction
 % on a term of type \lstinline+T+ the predicate being
 % proved, say \lstinline+P+, is true by induction hypothesis
 % on (smaller) terms of type \lstinline+T+. See for example
@@ -934,16 +934,16 @@ Finally the type of \lstinline+(is_K a1 pa1 .. an pan)+ is
 The induction principle is synthesized by following these steps:
 \begin{enumerate}
 \item take in input each parameter
-  \lstinline+A1 PA1 .. An PAn+ of \lstinline+is_T+.
+  \lstinline+A1 is_A .. An is_A+ of \lstinline+is_T+.
 \item take in input a predicate \lstinline+(P : T A1 .. An -> U)+.
 \item for each constructor \lstinline+is_K+ of
 	type \\
-		\lstinline+(forall A1 PA1 .. An PAn, forall a1 pa1 .. am pam, is_T A1 PA1 .. An PAn (K a1 .. am))+ \\
+		\lstinline+(forall A1 is_A .. An is_A, forall a1 pa1 .. am pam, is_T A1 is_A .. An is_A (K a1 .. am))+ \\
   take in input an assumption \lstinline+HK+ of type
 		\lstinline+(forall a1 pa1 .. am pam,+
 		\lstinline+P (K a1 .. am))+.
 \item take in input \lstinline+(t : T A1 .. An)+.
-\item take in input \lstinline+(x : is_T A1 PA1 .. An PAn t)+.
+\item take in input \lstinline+(x : is_T A1 is_A .. An is_A t)+.
 \item perform recursion on \lstinline+x+ and a case split. Then
 	in each branch
 \begin{enumerate}
@@ -959,21 +959,21 @@ The induction principle is synthesized by following these steps:
 Lets take for example the induction principle for rose trees:
 
 \begin{lstlisting}[numbers=left]
-Definition rtree_induction A PA P  
-   (HLeaf : forall a, PA a -> P (Leaf A a))
+Definition rtree_induction A is_A P  
+   (HLeaf : forall a, is_A a -> P (Leaf A a))
    (HNode : forall l, is_list (rtree A) P l -> P (Node A l)) :
- forall t, is_rtree A PA t -> P t
+ forall t, is_rtree A is_A t -> P t
 :=
- fix IH (t: rtree A) (x: is_rtree A PA t) {struct x}: P t :=
+ fix IH (t: rtree A) (x: is_rtree A is_A t) {struct x}: P t :=
    match x with
    | is_Leaf a pa => HLeaf a pa
-   | is_Node l pl => (* pl: is_list (rtree A) (is_rtree A PA) l *)
-       HNode l (is_list_funct (rtree A) (is_rtree A PA) P IH l pl)
+   | is_Node l pl => (* pl: is_list (rtree A) (is_rtree A is_A) l *)
+       HNode l (is_list_funct (rtree A) (is_rtree A is_A) P IH l pl)
    end.
 \end{lstlisting}
 
 Note how, intuitively, the type of \lstinline+HLeaf+ can be obtained fom the
-type of \lstinline+is_Leaf+ by replacing \lstinline+(is_rtree A PA)+
+type of \lstinline+is_Leaf+ by replacing \lstinline+(is_rtree A is_A)+
 with \lstinline+P+.
 
 Finally let us see  how the second argument to \lstinline+HNode+ is
@@ -981,11 +981,11 @@ synthesized.  We take advantage of the fact that Elpi is a logic
 programming language and we query the data base \lstinline+funct-db+
 as follows. First we temporarily register 
 the fact that \lstinline+IH+ maps
-\lstinline+(is_rtree A PA)+ to \lstinline+P+ obtaining, among others,
+\lstinline+(is_rtree A is_A)+ to \lstinline+P+ obtaining, among others,
 the following clauses.
 
 \begin{lstlisting}[]
-funct-db (app["is_rtree", "A", "PA"]) "P" "IH".
+funct-db (app["is_rtree", "A", "is_A"]) "P" "IH".
 funct-db (app["is_list",A,P]) (app["is_list",A,Q]) (app["is_list_funct",A,P,Q,F]) :-
   funct-db P Q F.
 \end{lstlisting}
@@ -993,13 +993,13 @@ funct-db (app["is_list",A,P]) (app["is_list",A,Q]) (app["is_list_funct",A,P,Q,F]
 Then we query \lstinline+funct-db+ as follows:
 
 \begin{lstlisting}[]
-funct-db (app["is_list", app["rtree","A"], app["is_rtree","A","PA"]])
+funct-db (app["is_list", app["rtree","A"], app["is_rtree","A","is_A"]])
           (app["is_list", app["rtree","A"], "P"])
           Q.
 \end{lstlisting}
 
 \noindent
-The answer \lstinline+(Q = app["is_list_funct",app["rtree","A"],app["is_rtree","A","PA"],"P","IH"])+
+The answer \lstinline+(Q = app["is_list_funct",app["rtree","A"],app["is_rtree","A","is_A"],"P","IH"])+
 is exactly the second term we need to pass to \lstinline+HNode+
 (once applied to \lstinline+l+ and \lstinline+Pl+, line 10 above).
 
@@ -1068,17 +1068,17 @@ For the \lstinline+cons+ constructor of \lstinline+list+ we get:
 
 \begin{lstlisting}
 Definition get_cons1 A (d1 : A) (d2 : list A) (l : list A) : A :=
-  match l with nil => d1 | cons x _ => x end.
+  match l with nil => d1 | x :: _ => x end.
 
 Definition get_cons2 A (d1 : A) (d2 : list A) (l : list A) : list A :=
-  match l with nil => d2 | cons _ xs => xs end.
+  match l with nil => d2 | _ :: xs => xs end.
 \end{lstlisting}
 
 \noindent
 Each projector takes in input default values for each and every
 argument of the constructor. It is designed to be used by the
 \derive{injection} procedure as follows. Given a term
-\lstinline+H+ of type \lstinline+(cons x xs = cons y ys)+
+\lstinline+H+ of type \lstinline+(x :: xs = y :: ys)+
 it synthesizes:
 
 \begin{lstlisting}
@@ -1092,7 +1092,7 @@ contains the default values to be passed to the projectors.
 Note that the type of the second term is actually:
 
 \begin{lstlisting}
-get_cons2 A x xs (cons x xs) = get_cons2 A x xs (cons y ys)
+get_cons2 A x xs (x :: xs) = get_cons2 A x xs (y :: ys)
 \end{lstlisting}
 
 \noindent
@@ -1234,10 +1234,10 @@ Lemma |+list_eq_correct+| A (fa : A -> A -> bool) l,
     is_list A (eq_axiom A fa) l ->
   eq_axiom (list A) (list_eq A fa) l.
 
-Definition rtree_induction A PA P  
-    (HLeaf : forall y, PA y -> P (Leaf A y))
+Definition rtree_induction A is_A P  
+    (HLeaf : forall y, is_A y -> P (Leaf A y))
     (HNode : forall l, is_list (rtree A) P l -> P (Node A l)) :
-  forall t, is_rtree A PA t -> P t.
+  forall t, is_rtree A is_A t -> P t.
 
 Lemma rtree_eq_axiom_Node A (f : A -> A -> bool) l1 :
     eq_axiom (list (rtree A)) (list_eq (rtree A) (rtree_eq A f)) l1 ->
@@ -1274,18 +1274,18 @@ the adaptor.  We load in the data base
 all the correctness proofs synthesized so far, as follows:
 
 \begin{lstlisting}[]
-funct-db (app["is_list", A, PA])
+funct-db (app["is_list", A, is_A])
           (app["eq_axiom", app["list", A], app["list_eq", A, A_eq]]) R :-
   R = (app["list_eq_correct", A, A_eq]),
-  funct-db PA (app["eq_axiom", A, A_eq]).
+  funct-db is_A (app["eq_axiom", A, A_eq]).
 \end{lstlisting}
 
 \noindent
 This clause simply gives an operational reading to the type
 of \lstinline+list_eq_correct+: the conclusion is true if the premise
 is. The only cleverness is to separate the premise in two parts,
-being a \lstinline+(list A)+ with property \lstinline+PA+ and have
-\lstinline+PA+ be a sufficient condition to prove that \lstinline+A_eq+
+being a \lstinline+(list A)+ with property \lstinline+is_A+ and have
+\lstinline+is_A+ be a sufficient condition to prove that \lstinline+A_eq+
 is correct. In this way clauses compose better:
 Search peels off just one type constructor at a time.
 Indeed we extend the \lstinline+funct-db+ predicate, instead of building
