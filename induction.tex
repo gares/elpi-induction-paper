@@ -40,10 +40,7 @@
 
 \Copyright{Enrico Tassi}
 
-\keywords{Dummy keyword}%TODO mandatory; please add comma-separated list of keywords
-
 \ccsdesc[500]{Software and its engineering~General programming languages}
-
 
 %% Keywords
 %% comma separated list
@@ -964,7 +961,7 @@ funct-db (app["is_list", app["rtree","A"], app["is_rtree","A","is_A"]])
 \end{lstlisting}
 
 \noindent
-The answer \lstinline+(Q = app["is_list_funct",app["rtree","A"],app["is_rtree","A","is_A"],"P","IH"])+
+The answer \lstinline+(Q=app["is_list_funct",app["rtree","A"],app["is_rtree","A","is_A"],"P","IH"])+
 is exactly the second term we need to pass to \lstinline+HNode+
 (once applied to \lstinline+l+ and \lstinline+Pl+, line 10 above).
 
@@ -1074,7 +1071,7 @@ In our case the shape of
 \lstinline+P+ is always an equation between two terms of
 an inductive type, i.e. constructors.
 When the same constructor occurs in both sides, as in
-\lstinline+(k x1 .. xn = k y1 .. y2)+, the equality test
+\lstinline+(k x1.. xn = k y1.. y2)+, the equality test
 discards \lstinline+k+ and proceeds on each \lstinline+(xi = yi)+.
 The \derive{bcongr} component synthesizes lemmas
 helping to prove the correctness of this step. For example:
@@ -1218,7 +1215,7 @@ Lemma |+rtree_eq_correct+| A (fa : A -> A -> bool) :=
 (*P*) $~~~$ (eq_axiom (rtree A) (rtree_eq A fa))
 (*HLeaf*) (rtree_eq_axiom_Leaf A fa)
 (*HNode*) (fun l (Pl : is_list (rtree a) (eq_axiom (rtree a) (rtree_eq a fa)) l) =>
-             rtree_eq_axiom_Node A fa l (list_eq_correct (rtree a) (rtree_eq a fa) l Pl)).
+            rtree_eq_axiom_Node A fa l (list_eq_correct (rtree a) (rtree_eq a fa) l Pl)).
 \end{lstlisting}
 
 Logic programming provides a natural way to synthesize
